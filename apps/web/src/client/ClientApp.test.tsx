@@ -54,9 +54,24 @@ describe('weekly report form', () => {
       current: aReport({ data: dataWith({ prev: { weight: '72,4' } }) }),
     })
     await screen.getByRole('tab', { name: 'Замеры' }).click()
-    await expect.element(screen.getByLabelText('Было Вес')).toHaveValue('72,4')
+    await expect.element(screen.getByLabelText('Было Вес')).toHaveTextContent('72,4')
+    await expect.element(screen.getByRole('textbox', { name: 'Было Вес' })).not.toBeInTheDocument()
     await screen.getByLabelText('Стало Вес').fill('71,9')
     await expect.element(screen.getByLabelText('Разница Вес')).toHaveTextContent('-0,5')
+  })
+
+  it('shows a dash for "before" when there is no previous measurement', async () => {
+    const { screen } = await renderClient()
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect.element(screen.getByLabelText('Было Талия')).toHaveTextContent('—')
+  })
+
+  it('sends the first report without previous measurements', async () => {
+    const { screen } = await renderClient({
+      current: aReport({ data: { ...filledData(), prev: dataWith({}).prev } }),
+    })
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
   })
 
   it('saves answers automatically', async () => {

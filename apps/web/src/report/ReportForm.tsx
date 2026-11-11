@@ -231,13 +231,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
             {MEASURES.map((m) => (
               <Row key={m.key}>
                 <MetricName label={m.label} unit={m.unit} />
-                <NumberInput
-                  label={`Было ${m.label}`}
-                  value={data.prev[m.key]}
-                  disabled={readOnly}
-                  invalid={isInvalid(`prev.${m.key}`)}
-                  onChange={(v) => set('prev', { [m.key]: v })}
-                />
+                <Value label={`Было ${m.label}`}>{data.prev[m.key] || '—'}</Value>
                 <NumberInput
                   label={`Стало ${m.label}`}
                   value={data.now[m.key]}

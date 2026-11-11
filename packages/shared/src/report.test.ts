@@ -121,7 +121,7 @@ describe('reportDataSchema', () => {
 
 describe('missingFields', () => {
   it('lists every field of an empty report', () => {
-    expect(missingFields(reportDataSchema.parse({}))).toHaveLength(6 + 6 + 6 + 6 + 4)
+    expect(missingFields(reportDataSchema.parse({}))).toHaveLength(6 + 6 + 6 + 4)
   })
 
   it('names a field by its section and key', () => {
@@ -132,6 +132,11 @@ describe('missingFields', () => {
   it('treats blank text and non-numeric measurements as missing', () => {
     const data = filledReport({ feedback: { wins: '   ' }, now: { weight: 'abc' } })
     expect(missingFields(data)).toEqual(['now.weight', 'feedback.wins'])
+  })
+
+  it('does not require "before" measurements, which come from the previous report', () => {
+    const data = filledReport({ prev: { weight: '', waist: '' } })
+    expect(missingFields(data)).toEqual([])
   })
 
   it('does not require the wellbeing comment', () => {

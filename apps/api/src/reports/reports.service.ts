@@ -51,7 +51,7 @@ export class ReportsService {
     if (report.status !== 'DRAFT') throw new ConflictException('Отчёт уже отправлен')
     const parsed = reportDataSchema.safeParse(input)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-    await this.reports.updateDraft(id, parsed.data)
+    await this.reports.updateDraft(id, { ...parsed.data, prev: report.data.prev })
     return this.own(userId, id)
   }
 

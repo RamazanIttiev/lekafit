@@ -4,7 +4,11 @@ import { aClient, as, COACH_ID, resetDatabase, seedPlan, startApp } from './supp
 
 const sent: SentMessage[] = []
 const app = await startApp({}, { telegram: { send: async (m) => void sent.push(m) } })
-afterAll(() => app.close())
+const lastWeekApp = await startApp({ now: () => new Date(2026, 10, 6, 12) })
+afterAll(async () => {
+  await app.close()
+  await lastWeekApp.close()
+})
 beforeEach(async () => {
   sent.length = 0
   await resetDatabase()
@@ -21,11 +25,15 @@ const submitFilledReport = async () => {
     steps: 10000,
     training: 3,
   })
+  const lastWeek = await as(lastWeekApp, client).get('/reports/current')
+  await as(lastWeekApp, client).patch(`/reports/${lastWeek.body.id}`, {
+    data: { now: { weight: '72,4' } },
+  })
+  await as(lastWeekApp, client).post(`/reports/${lastWeek.body.id}/submit`).expect(200)
   const { body } = await as(app, client).get('/reports/current')
   await as(app, client).patch(`/reports/${body.id}`, {
     data: {
       fact: { cal: '1850', protein: '115', steps: '9000', training: '3' },
-      prev: { weight: '72,4' },
       now: { weight: '71,9', waist: '70' },
     },
   })
