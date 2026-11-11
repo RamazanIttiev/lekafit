@@ -1,0 +1,118 @@
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { aClient, as, resetDatabase, startApp, type TelegramUser, theCoach } from './support'
+
+const app = await startApp()
+afterAll(() => app.close())
+beforeEach(resetDatabase)
+
+const coach = () => as(app, theCoach())
+const plan = { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: 3 }
+
+const registered = async (user: TelegramUser) => {
+  const { body } = await as(app, user).get('/me')
+  return body.id as number
+}
+
+const submitReport = async (user: TelegramUser, data: object = {}) => {
+  const { body } = await as(app, user).get('/reports/current')
+  await as(app, user).patch(`/reports/${body.id}`, { data })
+  await as(app, user).post(`/reports/${body.id}/submit`).expect(200)
+  return body.id as number
+}
+
+describe('coach-only access', () => {
+  it.each(['/coach/clients', '/coach/clients/1', '/coach/clients/1/reports', '/coach/reports/1'])(
+    'forbids clients from %s',
+    async (url) => {
+      await as(app, aClient()).get(url).expect(403)
+    },
+  )
+
+  it('forbids clients from changing plans', async () => {
+    const client = aClient()
+    const id = await registered(client)
+    await as(app, client).put(`/coach/clients/${id}/plan`, plan).expect(403)
+  })
+})
+
+describe('GET /coach/clients', () => {
+  it('lists clients with their latest report, unreviewed ones first', async () => {
+    const reviewed = aClient({ first_name: 'Вера' })
+    const fresh = aClient({ first_name: 'Ольга' })
+    const idle = aClient({ first_name: 'Ира' })
+    const reviewedReport = await submitReport(reviewed)
+    await coach().get(`/coach/reports/${reviewedReport}`)
+    await submitReport(fresh)
+    await registered(idle)
+    await registered(theCoach())
+
+    const res = await coach().get('/coach/clients').expect(200)
+    expect(res.body.map((c: { firstName: string }) => c.firstName)).toEqual([
+      'Ольга',
+      'Вера',
+      'Ира',
+    ])
+    expect(res.body[0]).toMatchObject({ unseenReports: 1, lastReportWeek: '2026-11-09' })
+    expect(res.body[1]).toMatchObject({ unseenReports: 0, lastReportWeek: '2026-11-09' })
+    expect(res.body[2]).toMatchObject({ unseenReports: 0, lastReportWeek: null })
+  })
+})
+
+describe('client plan', () => {
+  it('lets the coach set a plan that the client then sees', async () => {
+    const client = aClient()
+    const id = await registered(client)
+    await coach().put(`/coach/clients/${id}/plan`, plan).expect(200)
+    const res = await as(app, client).get('/reports/current')
+    expect(res.body.plan).toEqual(plan)
+  })
+
+  it('shows the client profile with the current plan', async () => {
+    const client = aClient({ first_name: 'Анна' })
+    const id = await registered(client)
+    await coach().put(`/coach/clients/${id}/plan`, { ...plan, training: null })
+    const res = await coach().get(`/coach/clients/${id}`).expect(200)
+    expect(res.body).toMatchObject({ id, firstName: 'Анна', plan: { ...plan, training: null } })
+  })
+
+  it('rejects invalid plans', async () => {
+    const id = await registered(aClient())
+    await coach()
+      .put(`/coach/clients/${id}/plan`, { ...plan, cal: -5 })
+      .expect(400)
+  })
+
+  it('returns 404 for unknown clients', async () => {
+    await coach().get('/coach/clients/999').expect(404)
+    await coach().put('/coach/clients/999/plan', plan).expect(404)
+  })
+})
+
+describe('client report history', () => {
+  it('shows only submitted reports, newest first', async () => {
+    const client = aClient()
+    const id = await registered(client)
+    await submitReport(client, { now: { weight: '70' } })
+    const later = await startApp({ now: () => new Date(2026, 10, 19, 9) })
+    await as(later, client).get('/reports/current')
+    await later.close()
+
+    const res = await coach().get(`/coach/clients/${id}/reports`).expect(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0]).toMatchObject({ weekStart: '2026-11-09', data: { now: { weight: '70' } } })
+  })
+
+  it('opens a single report with the client name and marks it as reviewed', async () => {
+    const client = aClient({ first_name: 'Анна' })
+    const reportId = await submitReport(client)
+    const res = await coach().get(`/coach/reports/${reportId}`).expect(200)
+    expect(res.body).toMatchObject({ id: reportId, client: { firstName: 'Анна' } })
+    const list = await coach().get('/coach/clients')
+    expect(list.body[0].unseenReports).toBe(0)
+  })
+
+  it('does not show drafts to the coach', async () => {
+    const { body } = await as(app, aClient()).get('/reports/current')
+    await coach().get(`/coach/reports/${body.id}`).expect(404)
+  })
+})

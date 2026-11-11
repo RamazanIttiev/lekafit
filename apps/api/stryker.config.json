@@ -1,7 +1,7 @@
 {
   "testRunner": "vitest",
   "plugins": ["@stryker-mutator/vitest-runner"],
-  "mutate": ["src/reports/reports.service.ts", "src/auth/*.ts"],
+  "mutate": ["src/coach/*.ts", "src/bot/report-summary.ts", "src/bot/coach-notifier.ts"],
   "concurrency": 1,
   "reporters": ["clear-text"]
 }

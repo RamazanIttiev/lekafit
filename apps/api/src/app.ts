@@ -1,11 +1,12 @@
 import 'reflect-metadata'
 import { type INestApplication, Inject, Module, type OnApplicationShutdown } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
-import { TelegramAuthGuard } from './auth/telegram-auth.guard'
+import { CoachGuard, TelegramAuthGuard } from './auth/telegram-auth.guard'
 import { Users } from './auth/users'
 import { GrammyGateway } from './bot/bot'
 import { CoachNotifier } from './bot/coach-notifier'
 import { TELEGRAM, type TelegramGateway } from './bot/telegram.gateway'
+import { CoachController } from './coach/coach.controller'
 import { type AppConfig, CONFIG } from './config'
 import { connect, migrate, SQL, type Sql } from './db'
 import { MeController } from './me.controller'
@@ -32,13 +33,14 @@ export const createApp = async (
   await migrate(sql)
 
   @Module({
-    controllers: [MeController, ReportsController],
+    controllers: [MeController, ReportsController, CoachController],
     providers: [
       { provide: CONFIG, useValue: config },
       { provide: SQL, useValue: sql },
       SqlLifecycle,
       Users,
       TelegramAuthGuard,
+      CoachGuard,
       ReportsRepository,
       ReportsService,
       CoachNotifier,
