@@ -9,10 +9,10 @@ export const Dynamics = ({ reports }: { reports: Report[] }) => (
     <Card.Header>
       <Card.Title>Динамика</Card.Title>
     </Card.Header>
-    <Table className="bg-background [&_.table__cell]:bg-background [&_.table__header]:bg-background">
+    <Table className="bg-transparent shadow-none [&_.table__cell]:bg-transparent [&_.table__header]:bg-transparent [&_.table__column]:bg-transparent [&_.table__row]:bg-transparent [&_.table__body]:bg-transparent">
       <Table.ScrollContainer>
         <Table.Content aria-label="Динамика">
-          <Table.Header className={'bg-[var(--background)])'}>
+          <Table.Header className="bg-transparent">
             {COLUMNS.map((c, i) => (
               <Table.Column key={c} isRowHeader={i === 0}>
                 {c}
@@ -21,7 +21,7 @@ export const Dynamics = ({ reports }: { reports: Report[] }) => (
           </Table.Header>
           <Table.Body>
             {reports.map((r) => (
-              <Table.Row key={r.id} className="[&_.table__cell]:bg-background!">
+              <Table.Row key={r.id} className="[&_.table__cell]:bg-transparent!">
                 <Table.Cell>{shortDate(r.weekStart)}</Table.Cell>
                 <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
                 <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>

@@ -1,2 +1,27 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --background: var(--tg-theme-bg-color);
+  --foreground: var(--tg-theme-text-color);
+  --surface: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color));
+  --surface-foreground: var(--tg-theme-text-color);
+  --overlay: var(--tg-theme-secondary-bg-color);
+  --overlay-foreground: var(--tg-theme-text-color);
+  --field-background: var(--tg-theme-secondary-bg-color);
+  --field-foreground: var(--tg-theme-text-color);
+  --field-placeholder: var(--tg-theme-hint-color);
+  --muted: var(--tg-theme-hint-color);
+  --accent: var(--tg-theme-button-color);
+  --accent-foreground: var(--tg-theme-button-text-color);
+  --focus: var(--tg-theme-button-color);
+  --danger: var(--tg-theme-destructive-text-color);
+  --separator: var(--tg-theme-section-separator-color);
+  --border: var(--tg-theme-section-separator-color);
+}
+
+body {
+  background-color: var(--tg-theme-secondary-bg-color, var(--background));
+}
