@@ -1,15 +1,17 @@
+export type BackButton = {
+  show: () => void
+  hide: () => void
+  onClick: (cb: () => void) => void
+  offClick: (cb: () => void) => void
+}
+
 type TelegramWebApp = {
   initData: string
   ready: () => void
   expand: () => void
   showConfirm: (message: string, callback: (ok: boolean) => void) => void
   HapticFeedback?: { notificationOccurred: (type: 'success' | 'error' | 'warning') => void }
-  BackButton: {
-    show: () => void
-    hide: () => void
-    onClick: (cb: () => void) => void
-    offClick: (cb: () => void) => void
-  }
+  BackButton: BackButton
   initDataUnsafe?: { start_param?: string }
   colorScheme?: 'light' | 'dark'
   themeParams?: ThemeParams

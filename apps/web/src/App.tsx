@@ -3,15 +3,17 @@ import { useEffect, useState } from 'react'
 import type { Api, CoachApi, Me } from './api'
 import { ClientApp } from './client/ClientApp'
 import { CoachApp } from './coach/CoachApp'
+import type { BackButton } from './telegram'
 
 type Props = {
   api: Api
   coachApi: CoachApi
   confirm: (message: string) => Promise<boolean>
   initialRoute: string
+  backButton: BackButton
 }
 
-export const App = ({ api, coachApi, confirm, initialRoute }: Props) => {
+export const App = ({ api, coachApi, confirm, initialRoute, backButton }: Props) => {
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +30,7 @@ export const App = ({ api, coachApi, confirm, initialRoute }: Props) => {
       </Alert>
     )
   if (!me) return <Spinner />
-  if (me.role === 'COACH') return <CoachApp api={coachApi} initialRoute={initialRoute} />
-  return <ClientApp api={api} confirm={confirm} />
+  if (me.role === 'COACH')
+    return <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} />
+  return <ClientApp api={api} confirm={confirm} backButton={backButton} />
 }

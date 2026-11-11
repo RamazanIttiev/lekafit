@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { aPlan, aReport, dataWith, fakeApi, filledData } from '../test/fakeApi'
+import { fakeBackButton } from '../test/fakeBackButton'
 import { ClientApp } from './ClientApp'
 
 const renderClient = async (
@@ -8,8 +9,11 @@ const renderClient = async (
   confirm = vi.fn(async (_message: string) => true),
 ) => {
   const fake = fakeApi(setup)
-  const screen = await render(<ClientApp api={fake.api} confirm={confirm} />)
-  return { ...fake, confirm, screen }
+  const back = fakeBackButton()
+  const screen = await render(
+    <ClientApp api={fake.api} confirm={confirm} backButton={back.backButton} />,
+  )
+  return { ...fake, back, confirm, screen }
 }
 
 describe('weekly report form', () => {
@@ -186,5 +190,22 @@ describe('report history', () => {
     await screen.getByRole('tab', { name: 'История' }).click()
     await screen.getByRole('button', { name: /02\.11 — 08\.11/ }).click()
     await expect.element(screen.getByLabelText('Факт Калории')).toHaveValue('1777')
+  })
+
+  it('goes back from a past report to the history list with the Telegram back button', async () => {
+    const past = aReport({
+      id: 7,
+      weekStart: '2026-11-02',
+      weekEnd: '2026-11-08',
+      status: 'SUBMITTED',
+    })
+    const { screen, back } = await renderClient({ history: [past] })
+    expect(back.isVisible()).toBe(false)
+    await screen.getByRole('tab', { name: 'История' }).click()
+    await screen.getByRole('button', { name: /02\.11 — 08\.11/ }).click()
+    await expect.poll(back.isVisible).toBe(true)
+    back.press()
+    await expect.element(screen.getByRole('button', { name: /02\.11 — 08\.11/ })).toBeVisible()
+    await expect.poll(back.isVisible).toBe(false)
   })
 })

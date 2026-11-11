@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { App } from './App'
 import { fakeApi } from './test/fakeApi'
+import { fakeBackButton } from './test/fakeBackButton'
 import { aListItem, fakeCoachApi } from './test/fakeCoachApi'
 
 const renderAs = async (role: 'CLIENT' | 'COACH') => {
@@ -19,7 +20,13 @@ const renderAs = async (role: 'CLIENT' | 'COACH') => {
   }
   const coach = fakeCoachApi({ clients: [aListItem({ firstName: 'Ольга' })] })
   return render(
-    <App api={api} coachApi={coach.api} confirm={vi.fn(async () => true)} initialRoute="#/" />,
+    <App
+      api={api}
+      coachApi={coach.api}
+      confirm={vi.fn(async () => true)}
+      initialRoute="#/"
+      backButton={fakeBackButton().backButton}
+    />,
   )
 }
 

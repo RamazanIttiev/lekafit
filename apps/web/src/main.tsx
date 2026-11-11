@@ -25,6 +25,7 @@ if (root && tg?.initData) {
         coachApi={createCoachApi(request)}
         confirm={confirmWithTelegram}
         initialRoute={window.location.hash}
+        backButton={tg.BackButton}
       />
     </StrictMode>,
   )

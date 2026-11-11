@@ -5,7 +5,8 @@ import type { Api, Report, ReportData } from '../api'
 import { period } from '../format'
 import { ReportForm } from '../report/ReportForm'
 import { type SaveStatus, useAutosave } from '../report/useAutosave'
-import { hapticSuccess } from '../telegram'
+import { type BackButton, hapticSuccess } from '../telegram'
+import { useBackButton } from '../useBackButton'
 
 type Props = { api: Api; confirm: (message: string) => Promise<boolean> }
 
@@ -151,8 +152,10 @@ const PastReport = ({ api, id }: { api: Api; id: number }) => {
   )
 }
 
-export const ClientApp = ({ api, confirm }: Props) => {
+export const ClientApp = ({ api, confirm, backButton }: Props & { backButton: BackButton }) => {
   const [view, setView] = useState<View>({ name: 'current' })
+  const backToHistory = useCallback(() => setView({ name: 'history' }), [])
+  useBackButton(backButton, view.name === 'past' ? backToHistory : null)
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
       <Tabs

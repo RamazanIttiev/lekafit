@@ -15,6 +15,8 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import type { ClientListItem, ClientProfile, CoachApi, CoachReport, Plan, Report } from '../api'
 import { period, shortDate } from '../format'
 import { ReportForm } from '../report/ReportForm'
+import type { BackButton } from '../telegram'
+import { useBackButton } from '../useBackButton'
 
 export type Route =
   | { name: 'clients' }
@@ -224,10 +226,26 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
   )
 }
 
-const ReportView = ({ api, id }: { api: CoachApi; id: number }) => {
+const ReportView = ({
+  api,
+  id,
+  backButton,
+  go,
+}: {
+  api: CoachApi
+  id: number
+  backButton: BackButton
+  go: (r: Route) => void
+}) => {
   const { value: report, error } = useLoad<CoachReport>(
     useCallback(() => api.report(id), [api, id]),
   )
+  const clientId = report?.client.id
+  const back = useCallback(
+    () => go(clientId === undefined ? { name: 'clients' } : { name: 'client', id: clientId }),
+    [go, clientId],
+  )
+  useBackButton(backButton, back)
   if (!report)
     return (
       <Loading error={error}>
@@ -243,18 +261,25 @@ const ReportView = ({ api, id }: { api: CoachApi; id: number }) => {
   )
 }
 
-export const CoachApp = ({ api, initialRoute }: { api: CoachApi; initialRoute: string }) => {
+export const CoachApp = ({
+  api,
+  initialRoute,
+  backButton,
+}: {
+  api: CoachApi
+  initialRoute: string
+  backButton: BackButton
+}) => {
   const [route, setRoute] = useState<Route>(parseRoute(initialRoute))
+  const toClients = useCallback(() => setRoute({ name: 'clients' }), [])
+  useBackButton(backButton, route.name === 'client' ? toClients : null)
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
-      {route.name !== 'clients' && (
-        <Button size="sm" variant="ghost" onPress={() => setRoute({ name: 'clients' })}>
-          Все клиенты
-        </Button>
-      )}
       {route.name === 'clients' && <Clients api={api} go={setRoute} />}
       {route.name === 'client' && <Client key={route.id} api={api} id={route.id} go={setRoute} />}
-      {route.name === 'report' && <ReportView key={route.id} api={api} id={route.id} />}
+      {route.name === 'report' && (
+        <ReportView key={route.id} api={api} id={route.id} backButton={backButton} go={setRoute} />
+      )}
     </main>
   )
 }

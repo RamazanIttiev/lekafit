@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { aPlan, aReport, dataWith } from '../test/fakeApi'
+import { fakeBackButton } from '../test/fakeBackButton'
 import { aListItem, fakeCoachApi } from '../test/fakeCoachApi'
 import { CoachApp } from './CoachApp'
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initialRoute = '#/') => {
   const fake = fakeCoachApi(setup)
-  const screen = await render(<CoachApp api={fake.api} initialRoute={initialRoute} />)
-  return { ...fake, screen }
+  const back = fakeBackButton()
+  const screen = await render(
+    <CoachApp api={fake.api} initialRoute={initialRoute} backButton={back.backButton} />,
+  )
+  return { ...fake, back, screen }
 }
 
 describe('client list', () => {
@@ -130,15 +134,45 @@ describe('report page', () => {
       .toHaveValue('Все тренировки')
   })
 
-  it('goes back to the client list', async () => {
-    const { screen } = await renderCoach(
+  it('has no back button on the client list', async () => {
+    const { screen, back } = await renderCoach({ clients: [aListItem({ firstName: 'Ольга' })] })
+    await expect.element(screen.getByRole('button', { name: /Ольга/ })).toBeVisible()
+    expect(back.isVisible()).toBe(false)
+  })
+
+  it('goes back from a client to the client list with the Telegram back button', async () => {
+    const { screen, back } = await renderCoach(
+      { clients: [aListItem({ firstName: 'Ольга' })] },
+      '#/coach/clients/1',
+    )
+    await expect.poll(back.isVisible).toBe(true)
+    back.press()
+    await expect.element(screen.getByRole('button', { name: /Ольга/ })).toBeVisible()
+    await expect.poll(back.isVisible).toBe(false)
+  })
+
+  it('goes back from a report to its client with the Telegram back button', async () => {
+    const { screen, back } = await renderCoach(
       {
-        clients: [aListItem({ firstName: 'Ольга' })],
+        profile: { id: 1, firstName: 'Анна', lastName: 'Иванова', username: 'anna', plan: null },
         reports: [aReport({ id: 9, status: 'SUBMITTED' })],
       },
       '#/coach/reports/9',
     )
-    await screen.getByRole('button', { name: 'Все клиенты' }).click()
-    await expect.element(screen.getByRole('button', { name: /Ольга/ })).toBeVisible()
+    await expect.element(screen.getByRole('heading', { name: 'Анна Иванова' })).toBeVisible()
+    back.press()
+    await expect.element(screen.getByRole('button', { name: 'Сохранить план' })).toBeVisible()
+  })
+
+  it('shows no in-page back buttons', async () => {
+    const { screen } = await renderCoach(
+      { reports: [aReport({ id: 9, status: 'SUBMITTED' })] },
+      '#/coach/reports/9',
+    )
+    await expect.element(screen.getByLabelText('Факт Калории')).toBeVisible()
+    await expect
+      .element(screen.getByRole('button', { name: 'Все клиенты' }))
+      .not.toBeInTheDocument()
+    await expect.element(screen.getByRole('button', { name: 'Назад' })).not.toBeInTheDocument()
   })
 })
