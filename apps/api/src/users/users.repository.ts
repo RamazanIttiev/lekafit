@@ -1,22 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, type Repository } from 'typeorm'
-import { ReportEntity } from '../reports/report.entity'
+import type { Repository } from 'typeorm'
 import { type Role, UserEntity } from './user.entity'
 
 export type { Role }
 export type User = Omit<UserEntity, 'createdAt'>
-
-export type ClientSummary = User & {
-  lastReportWeek: string | null
-  unseenReports: number
-}
-
-type ClientSummaryRow = {
-  id: number
-  lastReportWeek: string | null
-  unseenReports: string
-}
 
 const toUser = ({ createdAt: _, ...user }: UserEntity): User => user
 
@@ -40,35 +28,8 @@ export class UsersRepository {
     return user ? toUser(user) : null
   }
 
-  async listClients(): Promise<ClientSummary[]> {
-    const unseen = 'COUNT(report.id) FILTER (WHERE report.seenByCoachAt IS NULL)'
-    const rows = await this.users
-      .createQueryBuilder('user')
-      .leftJoin(ReportEntity, 'report', 'report.userId = user.id AND report.status = :status', {
-        status: 'SUBMITTED',
-      })
-      .select('user.id', 'id')
-      .addSelect("TO_CHAR(MAX(report.weekStart), 'YYYY-MM-DD')", 'lastReportWeek')
-      .addSelect(unseen, 'unseenReports')
-      .where('user.role = :role', { role: 'CLIENT' })
-      .groupBy('user.id')
-      .orderBy(`${unseen} > 0`, 'DESC')
-      .addOrderBy('MAX(report.submittedAt)', 'DESC', 'NULLS LAST')
-      .addOrderBy('user.firstName', 'ASC')
-      .getRawMany<ClientSummaryRow>()
-    const users = await this.users.findBy({ id: In(rows.map((r) => r.id)) })
-    const byId = new Map(users.map((u) => [u.id, toUser(u)]))
-    return rows.flatMap((row) => {
-      const user = byId.get(row.id)
-      return user
-        ? [
-            {
-              ...user,
-              lastReportWeek: row.lastReportWeek,
-              unseenReports: Number(row.unseenReports),
-            },
-          ]
-        : []
-    })
+  async listClients(): Promise<User[]> {
+    const clients = await this.users.findBy({ role: 'CLIENT' })
+    return clients.map(toUser)
   }
 }

@@ -1,6 +1,8 @@
 node_modules
 dist
-reports
+/apps/*/reports/
+/packages/*/reports/
 .stryker-tmp
 .env
 backups
+.idea

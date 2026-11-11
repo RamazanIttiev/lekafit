@@ -1,7 +1,32 @@
 import { planSchema } from '@lekafit/shared'
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { ReportsRepository } from '../reports/reports.repository'
+import { ReportsRepository, type SubmittedSummary } from '../reports/reports.repository'
 import { type User, UsersRepository } from '../users/users.repository'
+
+export type ClientSummary = User & { lastReportWeek: string | null; unseenReports: number }
+
+const latestIsoDate = (dates: string[]): string | null => dates.toSorted().at(-1) ?? null
+
+const latestTime = (dates: (Date | null)[]): number | null => {
+  const times = dates.flatMap((d) => (d ? [d.getTime()] : []))
+  return times.length ? Math.max(...times) : null
+}
+
+const summarize = (client: User, reports: SubmittedSummary[]) => ({
+  summary: {
+    ...client,
+    lastReportWeek: latestIsoDate(reports.map((r) => r.weekStart)),
+    unseenReports: reports.filter((r) => r.seenByCoachAt === null).length,
+  },
+  lastSubmittedAt: latestTime(reports.map((r) => r.submittedAt)),
+})
+
+type Summarized = ReturnType<typeof summarize>
+
+const byReviewPriority = (a: Summarized, b: Summarized) =>
+  Number(b.summary.unseenReports > 0) - Number(a.summary.unseenReports > 0) ||
+  (b.lastSubmittedAt ?? -1) - (a.lastSubmittedAt ?? -1) ||
+  a.summary.firstName.localeCompare(b.summary.firstName, 'ru')
 
 @Injectable()
 export class CoachService {
@@ -10,8 +35,20 @@ export class CoachService {
     @Inject(ReportsRepository) private readonly reports: ReportsRepository,
   ) {}
 
-  clients() {
-    return this.users.listClients()
+  async clients(): Promise<ClientSummary[]> {
+    const [clients, reports] = await Promise.all([
+      this.users.listClients(),
+      this.reports.submittedSummaries(),
+    ])
+    return clients
+      .map((client) =>
+        summarize(
+          client,
+          reports.filter((r) => r.userId === client.id),
+        ),
+      )
+      .sort(byReviewPriority)
+      .map(({ summary }) => summary)
   }
 
   private async client(id: number): Promise<User> {

@@ -39,6 +39,34 @@ describe('GET /reports/current', () => {
     expect(second.body.id).toBe(first.body.id)
   })
 
+  it('returns one draft when the app is opened twice at the same moment', async () => {
+    const client = aClient()
+    await as(app, client).get('/me')
+    const [a, b] = await Promise.all([
+      as(app, client).get('/reports/current').expect(200),
+      as(app, client).get('/reports/current').expect(200),
+    ])
+    expect(a.body.id).toBe(b.body.id)
+  })
+
+  it('prefills from the most recent sent report when there are several', async () => {
+    const client = aClient()
+    const week1 = await as(app, client).get('/reports/current')
+    await as(app, client).patch(`/reports/${week1.body.id}`, { data: { now: { weight: '72' } } })
+    await as(app, client).post(`/reports/${week1.body.id}/submit`)
+    const nextWeekApp = await startApp({ now: () => new Date(2026, 10, 19, 9) })
+    const week2 = await as(nextWeekApp, client).get('/reports/current')
+    await as(nextWeekApp, client).patch(`/reports/${week2.body.id}`, {
+      data: { now: { weight: '71' } },
+    })
+    await as(nextWeekApp, client).post(`/reports/${week2.body.id}/submit`)
+    await nextWeekApp.close()
+    const weekAfterApp = await startApp({ now: () => new Date(2026, 10, 26, 9) })
+    const week3 = await as(weekAfterApp, client).get('/reports/current')
+    await weekAfterApp.close()
+    expect(week3.body.data.prev.weight).toBe('71')
+  })
+
   it('includes the plan the coach set', async () => {
     const client = aClient()
     await as(app, client).get('/me')

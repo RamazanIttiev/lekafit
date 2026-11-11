@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm'
 import { type AppConfig, type AppOverrides, createApp } from '../src/app'
 import { dataSourceOptions } from '../src/data-source'
 import { PlanEntity } from '../src/reports/plan.entity'
+import { ReportEntity } from '../src/reports/report.entity'
 import { UserEntity } from '../src/users/user.entity'
 
 export const BOT_TOKEN = '123456:TEST-TOKEN'
@@ -51,8 +52,9 @@ const withDataSource = async <T>(work: (ds: DataSource) => Promise<T>): Promise<
 
 export const resetDatabase = () =>
   withDataSource(async (ds) => {
-    const hasSchema = await ds.query(`select to_regclass('public.users') is not null as ok`)
-    if (hasSchema[0]?.ok) await ds.query('truncate users, plans, reports restart identity cascade')
+    await ds.getRepository(ReportEntity).deleteAll()
+    await ds.getRepository(PlanEntity).deleteAll()
+    await ds.getRepository(UserEntity).deleteAll()
   })
 
 export const startApp = async (

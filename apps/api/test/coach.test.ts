@@ -58,6 +58,48 @@ describe('GET /coach/clients', () => {
   })
 })
 
+describe('GET /coach/clients ordering', () => {
+  const names = (body: { firstName: string }[]) => body.map((c) => c.firstName)
+
+  it('puts an older unreviewed report above a newer reviewed one', async () => {
+    const waiting = aClient({ first_name: 'Ждёт' })
+    const done = aClient({ first_name: 'Готово' })
+    await submitReport(waiting)
+    const doneReport = await submitReport(done)
+    await coach().get(`/coach/reports/${doneReport}`)
+    expect(names((await coach().get('/coach/clients')).body)).toEqual(['Ждёт', 'Готово'])
+  })
+
+  it('orders reviewed clients by most recent submission', async () => {
+    const earlier = aClient({ first_name: 'Аня' })
+    const later = aClient({ first_name: 'Боря' })
+    const first = await submitReport(earlier)
+    const second = await submitReport(later)
+    await coach().get(`/coach/reports/${first}`)
+    await coach().get(`/coach/reports/${second}`)
+    expect(names((await coach().get('/coach/clients')).body)).toEqual(['Боря', 'Аня'])
+  })
+
+  it('lists clients without reports alphabetically, after those with reports', async () => {
+    await registered(aClient({ first_name: 'Яна' }))
+    await registered(aClient({ first_name: 'Алла' }))
+    const reported = aClient({ first_name: 'Вера' })
+    await coach().get(`/coach/reports/${await submitReport(reported)}`)
+    expect(names((await coach().get('/coach/clients')).body)).toEqual(['Вера', 'Алла', 'Яна'])
+  })
+
+  it('shows the latest week and counts every unreviewed report', async () => {
+    const client = aClient()
+    await submitReport(client)
+    const later = await startApp({ now: () => new Date(2026, 10, 19, 9) })
+    const { body } = await as(later, client).get('/reports/current')
+    await as(later, client).post(`/reports/${body.id}/submit`).expect(200)
+    await later.close()
+    const [summary] = (await coach().get('/coach/clients')).body
+    expect(summary).toMatchObject({ lastReportWeek: '2026-11-16', unseenReports: 2 })
+  })
+})
+
 describe('client plan', () => {
   it('lets the coach set a plan that the client then sees', async () => {
     const client = aClient()
