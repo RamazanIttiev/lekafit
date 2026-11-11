@@ -130,7 +130,7 @@ const History = ({ api, onOpen }: { api: Api; onOpen: (id: number) => void }) =>
   return (
     <div className="flex flex-col gap-2">
       {reports.map((r) => (
-        <Button key={r.id} variant="secondary" onPress={() => onOpen(r.id)}>
+        <Button key={r.id} variant="primary" onPress={() => onOpen(r.id)}>
           {period(r)} · {r.status === 'SUBMITTED' ? 'отправлен' : 'черновик'}
         </Button>
       ))}
@@ -159,6 +159,7 @@ export const ClientApp = ({ api, confirm, backButton }: Props & { backButton: Ba
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
       <Tabs
+        variant={'primary'}
         selectedKey={view.name === 'current' ? 'current' : 'history'}
         onSelectionChange={(key) =>
           setView(key === 'current' ? { name: 'current' } : { name: 'history' })

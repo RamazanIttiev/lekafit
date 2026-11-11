@@ -9,6 +9,9 @@ type TelegramWebApp = {
   initData: string
   ready: () => void
   expand: () => void
+  setBackgroundColor?: (color: string) => void
+  setHeaderColor?: (color: string) => void
+  setBottomBarColor?: (color: string) => void
   openTelegramLink: (url: string) => void
   showConfirm: (message: string, callback: (ok: boolean) => void) => void
   HapticFeedback?: { notificationOccurred: (type: 'success' | 'error' | 'warning') => void }
@@ -58,13 +61,13 @@ type ThemeParams = Partial<
 >
 
 const TOKENS: ReadonlyArray<[string, keyof ThemeParams]> = [
-  ['--background', 'secondary_bg_color'],
+  ['--background', 'bg_color'],
   ['--foreground', 'text_color'],
   ['--surface', 'section_bg_color'],
   ['--surface-foreground', 'text_color'],
-  ['--overlay', 'bg_color'],
+  ['--overlay', 'secondary_bg_color'],
   ['--overlay-foreground', 'text_color'],
-  ['--field-background', 'bg_color'],
+  ['--field-background', 'secondary_bg_color'],
   ['--field-foreground', 'text_color'],
   ['--field-placeholder', 'hint_color'],
   ['--muted', 'hint_color'],
@@ -79,6 +82,9 @@ const TOKENS: ReadonlyArray<[string, keyof ThemeParams]> = [
 export const applyTelegramTheme = (tg: {
   colorScheme?: 'light' | 'dark'
   themeParams?: ThemeParams
+  setBackgroundColor?: (color: string) => void
+  setHeaderColor?: (color: string) => void
+  setBottomBarColor?: (color: string) => void
 }) => {
   const root = document.documentElement
   root.dataset.theme = tg.colorScheme ?? 'light'
@@ -86,4 +92,13 @@ export const applyTelegramTheme = (tg: {
     const color = tg.themeParams?.[param]
     if (color) root.style.setProperty(token, color)
   })
+  const background = tg.themeParams?.secondary_bg_color
+
+  console.log(tg.themeParams)
+  if (background) {
+    document.body.style.backgroundColor = background
+    tg.setBackgroundColor?.(background)
+    tg.setHeaderColor?.(background)
+    tg.setBottomBarColor?.(background)
+  }
 }

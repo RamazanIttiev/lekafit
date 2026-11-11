@@ -6,3 +6,4 @@ dist
 .env
 backups
 .idea
+apps/web/.vitest

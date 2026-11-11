@@ -8,6 +8,7 @@ import {
   Label,
   Spinner,
   Table,
+  Tabs,
   TextField,
 } from '@heroui/react'
 import { METRICS, type MetricKey, parseNumber } from '@lekafit/shared'
@@ -46,7 +47,7 @@ const useLoad = <T,>(load: () => Promise<T>) => {
 const Loading = ({ error, children }: { error: string | null; children: ReactNode }) =>
   error ? <Notice status="danger">{error}</Notice> : children
 
-const Notice = ({ status, children }: { status?: 'danger'; children: string }) => (
+const Notice = ({ status, children }: { status?: 'danger' | 'success'; children: string }) => (
   <Alert status={status}>
     <Alert.Content>
       <Alert.Title>{children}</Alert.Title>
@@ -112,17 +113,33 @@ const Clients = ({
   return (
     <div className="flex flex-col gap-2">
       <InviteButton api={api} share={share} />
-      {clients.map((c: ClientListItem) => (
-        <Button key={c.id} variant="secondary" onPress={() => go({ name: 'client', id: c.id })}>
-          {fullName(c)} ·{' '}
-          {c.lastReportWeek ? `последний: ${shortDate(c.lastReportWeek)}` : 'отчётов нет'}
-          {c.unseenReports > 0 && (
-            <Chip size="sm" color="accent">
-              новых: {c.unseenReports}
-            </Chip>
-          )}
-        </Button>
-      ))}
+      <Card className={'p-2'}>
+        <Card.Content className="flex flex-col gap-1">
+          {clients.map((c: ClientListItem) => (
+            <button
+              key={c.id}
+              type="button"
+              className="flex w-full items-center gap-4 rounded-2xl p-1 text-left hover:bg-surface-secondary"
+              onClick={() => go({ name: 'client', id: c.id })}
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-default text-sm font-medium">
+                {c.firstName.slice(0, 1)}
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-semibold">{fullName(c)}</span>
+                <span className="text-sm text-muted">
+                  {c.lastReportWeek ? `последний: ${shortDate(c.lastReportWeek)}` : 'отчётов нет'}
+                </span>
+              </span>
+              {c.unseenReports > 0 && (
+                <Chip size="sm" color="accent">
+                  новых: {c.unseenReports}
+                </Chip>
+              )}
+            </button>
+          ))}
+        </Card.Content>
+      </Card>
     </div>
   )
 }
@@ -142,12 +159,20 @@ const planToText = (plan: Plan | null): Record<MetricKey, string> => ({
 const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile }) => {
   const [values, setValues] = useState(planToText(profile.plan))
   const [message, setMessage] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (!saved) return
+    const timer = setTimeout(() => setSaved(false), 3000)
+    return () => clearTimeout(timer)
+  }, [saved])
 
   const save = async () => {
     const invalid = METRICS.filter(
       (m) => values[m.key].trim() && parseNumber(values[m.key]) === null,
     )
     if (invalid.length) {
+      setSaved(false)
       setMessage(`Проверьте значения: ${invalid.map((m) => m.label).join(', ')}`)
       return
     }
@@ -161,8 +186,10 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
     }
     try {
       await api.setPlan(profile.id, plan)
-      setMessage('План сохранён')
+      setMessage(null)
+      setSaved(true)
     } catch (e) {
+      setSaved(false)
       setMessage(e instanceof Error ? e.message : 'Не удалось сохранить')
     }
   }
@@ -192,7 +219,12 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
         <Button fullWidth onPress={save}>
           Сохранить план
         </Button>
-        {message && <Card.Description>{message}</Card.Description>}
+        {message && <Notice status="danger">{message}</Notice>}
+        {saved && (
+          <div className="fixed inset-x-3 top-3 z-50 mx-auto max-w-2xl">
+            <Notice status="success">План сохранён</Notice>
+          </div>
+        )}
       </Card.Footer>
     </Card>
   )
@@ -205,10 +237,10 @@ const Progress = ({ reports }: { reports: Report[] }) => (
     <Card.Header>
       <Card.Title>Динамика</Card.Title>
     </Card.Header>
-    <Table>
+    <Table className="bg-background [&_.table__cell]:bg-background [&_.table__header]:bg-background">
       <Table.ScrollContainer>
         <Table.Content aria-label="Динамика">
-          <Table.Header>
+          <Table.Header className={'bg-[var(--background)])'}>
             {COLUMNS.map((c, i) => (
               <Table.Column key={c} isRowHeader={i === 0}>
                 {c}
@@ -217,7 +249,7 @@ const Progress = ({ reports }: { reports: Report[] }) => (
           </Table.Header>
           <Table.Body>
             {reports.map((r) => (
-              <Table.Row key={r.id}>
+              <Table.Row key={r.id} className="[&_.table__cell]:bg-background!">
                 <Table.Cell>{shortDate(r.weekStart)}</Table.Cell>
                 <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
                 <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>
@@ -244,25 +276,44 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
   return (
     <>
       <h1>{fullName(profile.value)}</h1>
-      <PlanEditor api={api} profile={profile.value} />
-      {reports.value.length > 0 ? (
-        <>
-          <Progress reports={reports.value} />
-          <div className="flex flex-col gap-2">
-            {reports.value.map((r) => (
-              <Button
-                key={r.id}
-                variant="secondary"
-                onPress={() => go({ name: 'report', id: r.id })}
-              >
-                Отчёт {period(r)}
-              </Button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <Notice>Отправленных отчётов пока нет</Notice>
-      )}
+      <Tabs className="w-full">
+        <Tabs.ListContainer>
+          <Tabs.List aria-label="Разделы клиента">
+            <Tabs.Tab id="plan">
+              План
+              <Tabs.Indicator />
+            </Tabs.Tab>
+            <Tabs.Tab id="progress">
+              Динамика
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+        <Tabs.Panel className="p-0 pt-3" id="plan">
+          <PlanEditor api={api} profile={profile.value} />
+        </Tabs.Panel>
+        <Tabs.Panel className="flex flex-col gap-3 p-0 pt-3" id="progress">
+          {reports.value.length > 0 ? (
+            <>
+              <Progress reports={reports.value} />
+              <div className="flex flex-col gap-2">
+                {reports.value.map((r) => (
+                  <Button
+                    key={r.id}
+                    variant="primary"
+                    className="w-full"
+                    onPress={() => go({ name: 'report', id: r.id })}
+                  >
+                    Отчёт {period(r)}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <Notice>Отправленных отчётов пока нет</Notice>
+          )}
+        </Tabs.Panel>
+      </Tabs>
     </>
   )
 }

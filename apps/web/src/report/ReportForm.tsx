@@ -40,7 +40,7 @@ const Section = ({
   hint: string
   children: ReactNode
 }) => (
-  <Card variant={'tertiary'}>
+  <Card variant={'default'}>
     <Card.Header>
       <Card.Title>{title}</Card.Title>
       <Card.Description>{hint}</Card.Description>
@@ -100,7 +100,7 @@ const Row = ({ children }: { children: ReactNode }) => (
 const GridHead = ({ columns }: { columns: [string, string, string, string] }) => (
   <Row>
     {columns.map((c) => (
-      <Card.Description key={c} aria-hidden="true">
+      <Card.Description key={c} aria-hidden="true" className={'text-center'}>
         {c}
       </Card.Description>
     ))}
@@ -134,18 +134,20 @@ const NumberInput = ({
     isInvalid={invalid}
     onChange={onChange}
   >
-    <Input inputMode="decimal" placeholder="—" />
+    <Input inputMode="decimal" placeholder="—" className={'text-center'} />
   </TextField>
 )
 
 const Value = ({ label, children }: { label: string; children: ReactNode }) => (
-  <output aria-label={label}>{children}</output>
+  <output aria-label={label} className={'text-center'}>
+    {children}
+  </output>
 )
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <Card variant="secondary">
-    <Card.Description>{label}</Card.Description>
-    <Card.Title>
+  <Card variant="transparent">
+    <Card.Description className={'text-center'}>{label}</Card.Description>
+    <Card.Title className={'text-center'}>
       <Value label={label}>{value}</Value>
     </Card.Title>
   </Card>
@@ -171,7 +173,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
           ))}
         </Tabs.List>
       </Tabs.ListContainer>
-      <Tabs.Panel className="pt-3" id="activity">
+      <Tabs.Panel className="p-0" id="activity">
         <Section
           title="Питание и активность"
           hint="Среднее за 7 дней из FatSecret и приложения шагов. Тренировки — количество за неделю."
@@ -224,7 +226,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
           </div>
         </Section>
       </Tabs.Panel>
-      <Tabs.Panel className="pt-3" id="measures">
+      <Tabs.Panel className="p-0" id="measures">
         <Section title="Замеры" hint="Заполните все замеры.">
           <div className="flex flex-col gap-3">
             <GridHead columns={['Показатель', 'Было', 'Стало', 'Разница']} />
@@ -251,7 +253,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
           </div>
         </Section>
       </Tabs.Panel>
-      <Tabs.Panel className="pt-3" id="wellbeing">
+      <Tabs.Panel className="p-0" id="wellbeing">
         <Section title="Самочувствие" hint="Средняя оценка за последние 7 дней">
           <div className="flex flex-col gap-3">
             {WELLBEING.map((w) => (
@@ -290,7 +292,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
           </div>
         </Section>
       </Tabs.Panel>
-      <Tabs.Panel className="pt-3" id="feedback">
+      <Tabs.Panel className="p-0" id="feedback">
         <Section title="Обратная связь" hint="Коротко, своими словами">
           <div className="flex flex-col gap-3">
             {FEEDBACK.map((f) => (

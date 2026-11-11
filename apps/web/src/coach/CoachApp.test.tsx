@@ -106,6 +106,7 @@ describe('client page', () => {
       },
       clientRoute,
     )
+    await screen.getByRole('tab', { name: 'Динамика' }).click()
     const table = screen.getByRole('grid', { name: 'Динамика' })
     await expect.element(table).toBeVisible()
     const rows = table
@@ -125,6 +126,7 @@ describe('client page', () => {
       },
       clientRoute,
     )
+    await screen.getByRole('tab', { name: 'Динамика' }).click()
     await screen.getByRole('button', { name: /Отчёт 09\.11 — 15\.11/ }).click()
     await expect.element(screen.getByLabelText('Факт Калории')).toHaveValue('1850')
   })
