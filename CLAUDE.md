@@ -13,7 +13,7 @@
 
 - Schema changes: edit the entity, then in `apps/api` run
   `DATABASE_URL=… pnpm migration:generate src/migrations/<Name>` against a database at the current schema,
-  and add the new class to `migrations` in `src/data-source.ts`. Migrations run on app start (`migrationsRun`).
+  Files in `src/migrations/` are picked up automatically (glob in `src/data-source.ts`) and run on app start.
 - Never use `synchronize: true`.
 
 ## Workflow
