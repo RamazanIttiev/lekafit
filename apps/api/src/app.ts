@@ -1,6 +1,7 @@
 import 'reflect-metadata'
-import { type INestApplication, Inject, Module, type OnApplicationShutdown } from '@nestjs/common'
+import { type INestApplication, Module } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { CoachGuard, TelegramAuthGuard } from './auth/telegram-auth.guard'
 import { GrammyGateway } from './bot/bot'
 import { CoachNotifier } from './bot/coach-notifier'
@@ -8,7 +9,7 @@ import { TELEGRAM, type TelegramGateway } from './bot/telegram.gateway'
 import { CoachController } from './coach/coach.controller'
 import { CoachService } from './coach/coach.service'
 import { type AppConfig, CONFIG } from './config'
-import { connect, migrate, SQL, type Sql } from './db'
+import { dataSourceOptions, entities } from './data-source'
 import { MeController } from './me.controller'
 import { ReportsController } from './reports/reports.controller'
 import { type Report, ReportsRepository } from './reports/reports.repository'
@@ -20,33 +21,25 @@ export type { AppConfig }
 
 export type AppOverrides = { telegram?: TelegramGateway }
 
-class SqlLifecycle implements OnApplicationShutdown {
-  constructor(@Inject(SQL) private readonly sql: Sql) {}
-  async onApplicationShutdown() {
-    await this.sql.end()
-  }
-}
-
 export const createApp = async (
   config: AppConfig,
   overrides: AppOverrides = {},
 ): Promise<INestApplication> => {
-  const sql = connect(config.databaseUrl)
-  await migrate(sql)
-
   @Module({
+    imports: [
+      TypeOrmModule.forRoot(dataSourceOptions(config.databaseUrl)),
+      TypeOrmModule.forFeature(entities),
+    ],
     controllers: [MeController, ReportsController, CoachController],
     providers: [
       { provide: CONFIG, useValue: config },
-      { provide: SQL, useValue: sql },
-      SqlLifecycle,
       UsersRepository,
       UsersService,
-      CoachService,
       TelegramAuthGuard,
       CoachGuard,
       ReportsRepository,
       ReportsService,
+      CoachService,
       CoachNotifier,
       overrides.telegram
         ? { provide: TELEGRAM, useValue: overrides.telegram }

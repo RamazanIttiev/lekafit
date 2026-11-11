@@ -6,10 +6,15 @@
 
 - **Controllers**: HTTP only (routes, guards, pipes, params). Call services. No SQL, no business rules.
 - **Services**: business rules, validation, 404/409 decisions. Call repositories. No SQL.
-- **Repositories** (`*.repository.ts`): the only place SQL lives.
-- Infrastructure exceptions: `db.ts` (connection, migrations), `app.ts` (pool shutdown).
+- **Repositories** (`*.repository.ts`): the only layer that touches the database, via `@InjectRepository` (TypeORM). Prefer repository methods (`findOneBy`, `upsert`, `update`); use the query builder only for aggregates. No raw SQL strings.
+- **Entities** (`*.entity.ts`): give every `@Column` an explicit `type` — `tsx` does not emit decorator metadata.
 
-Check: `grep -rln "this.sql\|sql<" apps/api/src | grep -v migrations` lists only repositories, `db.ts` and `app.ts`.
+## Database (TypeORM via @nestjs/typeorm)
+
+- Schema changes: edit the entity, then in `apps/api` run
+  `DATABASE_URL=… pnpm migration:generate src/migrations/<Name>` against a database at the current schema,
+  and add the new class to `migrations` in `src/data-source.ts`. Migrations run on app start (`migrationsRun`).
+- Never use `synchronize: true`.
 
 ## Workflow
 

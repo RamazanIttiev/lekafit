@@ -4,11 +4,11 @@ A Telegram Mini App that replaces the HTML/PDF weekly report. Clients fill in th
 report inside Telegram, answers save to the server as they type, and the coach
 gets a Telegram message with a summary and a button to open the full report.
 
-| Package           | What it is                                                 |
-| ----------------- | ---------------------------------------------------------- |
-| `packages/shared` | Report fields, zod schemas, plan/fact formulas (RU labels) |
-| `apps/api`        | NestJS API + grammY bot, Postgres via plain SQL migrations |
-| `apps/web`        | React + HeroUI mini app (client form, coach screens)       |
+| Package           | What it is                                                      |
+| ----------------- | --------------------------------------------------------------- |
+| `packages/shared` | Report fields, zod schemas, plan/fact formulas (RU labels)      |
+| `apps/api`        | NestJS API + grammY bot, Postgres via TypeORM (@nestjs/typeorm) |
+| `apps/web`        | React + HeroUI mini app (client form, coach screens)            |
 
 ## How it works
 
@@ -60,7 +60,7 @@ Mutation testing: `pnpm --filter @lekafit/shared mutate`, or `npx stryker run` i
    docker compose up -d --build
    ```
 
-   Caddy gets a TLS certificate automatically. The API runs migrations on start,
+   Caddy gets a TLS certificate automatically. The API runs TypeORM migrations on start,
    sets the bot's menu button to the mini app and starts polling.
 5. The coach must press `/start` in the bot once, otherwise Telegram won't let the
    bot message her.

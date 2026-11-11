@@ -1,8 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
 import { sign } from '@tma.js/init-data-node'
-import postgres from 'postgres'
 import request from 'supertest'
+import { DataSource } from 'typeorm'
 import { type AppConfig, type AppOverrides, createApp } from '../src/app'
+import { dataSourceOptions } from '../src/data-source'
+import { PlanEntity } from '../src/reports/plan.entity'
+import { UserEntity } from '../src/users/user.entity'
 
 export const BOT_TOKEN = '123456:TEST-TOKEN'
 export const COACH_ID = 1000
@@ -34,11 +37,23 @@ export const initDataFor = (
   options: { authDate?: Date; token?: string } = {},
 ) => sign({ user }, options.token ?? BOT_TOKEN, options.authDate ?? new Date())
 
-export const resetDatabase = async () => {
-  const sql = postgres(testConfig().databaseUrl, { onnotice: () => {} })
-  await sql`truncate users, plans, reports restart identity cascade`.catch(() => undefined)
-  await sql.end()
+const withDataSource = async <T>(work: (ds: DataSource) => Promise<T>): Promise<T> => {
+  const ds = await new DataSource({
+    ...dataSourceOptions(testConfig().databaseUrl),
+    migrationsRun: false,
+  }).initialize()
+  try {
+    return await work(ds)
+  } finally {
+    await ds.destroy()
+  }
 }
+
+export const resetDatabase = () =>
+  withDataSource(async (ds) => {
+    const hasSchema = await ds.query(`select to_regclass('public.users') is not null as ok`)
+    if (hasSchema[0]?.ok) await ds.query('truncate users, plans, reports restart identity cascade')
+  })
 
 export const startApp = async (
   overrides: Partial<AppConfig> = {},
@@ -69,10 +84,8 @@ export const as = (app: INestApplication, user: TelegramUser) => {
   }
 }
 
-export const seedPlan = async (telegramId: number, plan: Record<string, number | null>) => {
-  const sql = postgres(testConfig().databaseUrl, { onnotice: () => {} })
-  const [user] = await sql<{ id: number }[]>`select id from users where telegram_id = ${telegramId}`
-  await sql`insert into plans ${sql({ user_id: user?.id, ...plan })}
-    on conflict (user_id) do update set cal = excluded.cal`
-  await sql.end()
-}
+export const seedPlan = (telegramId: number, plan: Record<string, number | null>) =>
+  withDataSource(async (ds) => {
+    const user = await ds.getRepository(UserEntity).findOneByOrFail({ telegramId })
+    await ds.getRepository(PlanEntity).upsert({ userId: user.id, ...plan }, ['userId'])
+  })
