@@ -37,7 +37,7 @@ const Section = ({
   children,
 }: {
   title: string
-  hint: string
+  hint?: string
   children: ReactNode
 }) => (
   <Card variant={'default'}>
@@ -209,7 +209,7 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
             ))}
             <div className="grid grid-cols-2 gap-2">
               <Stat
-                label="Выполнение тренировок"
+                label="Тренировки"
                 value={completionPercent({
                   plan: planValue('training'),
                   fact: parseNumber(data.fact.training),
