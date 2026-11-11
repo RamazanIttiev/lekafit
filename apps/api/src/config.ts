@@ -8,6 +8,7 @@ export type AppConfig = {
   coachTelegramId: number
   webAppUrl: string
   startBot: boolean
+  now: () => Date
 }
 
 const envSchema = z.object({
@@ -28,6 +29,7 @@ export const configFromEnv = (env: NodeJS.ProcessEnv) => {
       coachTelegramId: parsed.COACH_TELEGRAM_ID,
       webAppUrl: parsed.WEBAPP_URL,
       startBot: true,
+      now: () => new Date(),
     } satisfies AppConfig,
   }
 }

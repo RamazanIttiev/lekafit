@@ -11,6 +11,8 @@
     "db:deploy": "prisma migrate deploy"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@swc/core": "^1.16.22",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",

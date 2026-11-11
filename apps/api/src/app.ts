@@ -6,6 +6,9 @@ import { Users } from './auth/users'
 import { type AppConfig, CONFIG } from './config'
 import { connect, migrate, SQL, type Sql } from './db'
 import { MeController } from './me.controller'
+import { ReportsController } from './reports/reports.controller'
+import { ReportsRepository } from './reports/reports.repository'
+import { REPORT_SUBMITTED, ReportsService } from './reports/reports.service'
 
 export type { AppConfig }
 
@@ -21,13 +24,16 @@ export const createApp = async (config: AppConfig): Promise<INestApplication> =>
   await migrate(sql)
 
   @Module({
-    controllers: [MeController],
+    controllers: [MeController, ReportsController],
     providers: [
       { provide: CONFIG, useValue: config },
       { provide: SQL, useValue: sql },
       SqlLifecycle,
       Users,
       TelegramAuthGuard,
+      ReportsRepository,
+      ReportsService,
+      { provide: REPORT_SUBMITTED, useValue: async () => {} },
     ],
   })
   class AppModule {}

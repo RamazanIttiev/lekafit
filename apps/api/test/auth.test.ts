@@ -1,6 +1,7 @@
+import { sign } from '@telegram-apps/init-data-node'
 import request from 'supertest'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { aClient, as, initDataFor, resetDatabase, startApp, theCoach } from './support'
+import { aClient, as, BOT_TOKEN, initDataFor, resetDatabase, startApp, theCoach } from './support'
 
 const app = await startApp()
 afterAll(() => app.close())
@@ -22,6 +23,21 @@ describe('GET /me', () => {
   it('rejects init data older than one day', async () => {
     const stale = initDataFor(aClient(), { authDate: new Date(Date.now() - 25 * 3600 * 1000) })
     await request(server()).get('/me').set('Authorization', `tma ${stale}`).expect(401)
+  })
+
+  it('rejects a valid payload sent with another auth scheme', async () => {
+    const valid = initDataFor(aClient())
+    await request(server()).get('/me').set('Authorization', `Bearer ${valid}`).expect(401)
+  })
+
+  it('rejects signed init data that carries no user', async () => {
+    const noUser = sign({ query_id: 'q1' }, BOT_TOKEN, new Date())
+    await request(server()).get('/me').set('Authorization', `tma ${noUser}`).expect(401)
+  })
+
+  it('accepts init data a few hours old, e.g. an app left open', async () => {
+    const recent = initDataFor(aClient(), { authDate: new Date(Date.now() - 5 * 3600 * 1000) })
+    await request(server()).get('/me').set('Authorization', `tma ${recent}`).expect(200)
   })
 
   it('registers a new Telegram user as a client', async () => {

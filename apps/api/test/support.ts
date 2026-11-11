@@ -13,6 +13,7 @@ export const testConfig = (overrides: Partial<AppConfig> = {}): AppConfig => ({
   coachTelegramId: COACH_ID,
   webAppUrl: 'https://example.test',
   startBot: false,
+  now: () => new Date(2026, 10, 13, 12),
   ...overrides,
 })
 
@@ -35,7 +36,7 @@ export const initDataFor = (
 
 export const resetDatabase = async () => {
   const sql = postgres(testConfig().databaseUrl, { onnotice: () => {} })
-  await sql`truncate users restart identity cascade`.catch(() => undefined)
+  await sql`truncate users, plans, reports restart identity cascade`.catch(() => undefined)
   await sql.end()
 }
 
@@ -60,4 +61,12 @@ export const as = (app: INestApplication, user: TelegramUser) => {
     put: (url: string, body: object) =>
       request(server).put(url).set('Authorization', auth).send(body),
   }
+}
+
+export const seedPlan = async (telegramId: number, plan: Record<string, number | null>) => {
+  const sql = postgres(testConfig().databaseUrl, { onnotice: () => {} })
+  const [user] = await sql<{ id: number }[]>`select id from users where telegram_id = ${telegramId}`
+  await sql`insert into plans ${sql({ user_id: user?.id, ...plan })}
+    on conflict (user_id) do update set cal = excluded.cal`
+  await sql.end()
 }
