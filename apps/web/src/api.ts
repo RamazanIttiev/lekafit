@@ -24,6 +24,36 @@ export type Me = z.infer<typeof meSchema>
 export type Report = z.infer<typeof reportSchema>
 export type ReportData = Report['data']
 
+export const coachClientSchema = z.object({
+  id: z.number(),
+  firstName: z.string(),
+  lastName: z.string().nullable(),
+  username: z.string().nullable(),
+})
+
+export const clientListItemSchema = coachClientSchema.extend({
+  lastReportWeek: z.string().nullable(),
+  unseenReports: z.number(),
+})
+
+export const clientProfileSchema = coachClientSchema.extend({ plan: planSchema.nullable() })
+
+export const coachReportSchema = reportSchema.extend({ client: coachClientSchema })
+
+export type CoachClient = z.infer<typeof coachClientSchema>
+export type ClientListItem = z.infer<typeof clientListItemSchema>
+export type ClientProfile = z.infer<typeof clientProfileSchema>
+export type CoachReport = z.infer<typeof coachReportSchema>
+export type Plan = NonNullable<Report['plan']>
+
+export type CoachApi = {
+  clients: () => Promise<ClientListItem[]>
+  client: (id: number) => Promise<ClientProfile>
+  setPlan: (id: number, plan: Plan) => Promise<Plan>
+  clientReports: (id: number) => Promise<Report[]>
+  report: (id: number) => Promise<CoachReport>
+}
+
 export type Api = {
   me: () => Promise<Me>
   currentReport: () => Promise<Report>
@@ -77,4 +107,13 @@ export const createApi = (request: Request): Api => ({
   submitReport: (id) => request(`/reports/${id}/submit`, reportSchema, { method: 'POST' }),
   listReports: () => request('/reports', z.array(reportSchema)),
   getReport: (id) => request(`/reports/${id}`, reportSchema),
+})
+
+export const createCoachApi = (request: Request): CoachApi => ({
+  clients: () => request('/coach/clients', z.array(clientListItemSchema)),
+  client: (id) => request(`/coach/clients/${id}`, clientProfileSchema),
+  setPlan: (id, plan) =>
+    request(`/coach/clients/${id}/plan`, planSchema, { method: 'PUT', body: plan }),
+  clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
+  report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
 })

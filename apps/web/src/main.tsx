@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { createApi, httpClient } from './api'
+import { createApi, createCoachApi, httpClient } from './api'
 import { confirmWithTelegram, webApp } from './telegram'
 import './styles.css'
 
@@ -11,12 +11,18 @@ const tg = webApp()
 if (root && tg?.initData) {
   tg.ready()
   tg.expand()
-  const api = createApi(
-    httpClient({ baseUrl: import.meta.env.VITE_API_URL ?? '/api', initData: tg.initData }),
-  )
+  const request = httpClient({
+    baseUrl: import.meta.env.VITE_API_URL ?? '/api',
+    initData: tg.initData,
+  })
   createRoot(root).render(
     <StrictMode>
-      <App api={api} confirm={confirmWithTelegram} />
+      <App
+        api={createApi(request)}
+        coachApi={createCoachApi(request)}
+        confirm={confirmWithTelegram}
+        initialRoute={window.location.hash}
+      />
     </StrictMode>,
   )
 } else if (root) {
