@@ -24,7 +24,7 @@ export class CoachNotifier {
         text: reportSummary(report, client),
         webAppButton: {
           text: 'Открыть отчёт',
-          url: `${this.config.webAppUrl}/#/coach/reports/${report.id}`,
+          url: `${this.config.webAppUrl}/?report=${report.id}`,
         },
       })
     } catch (error) {

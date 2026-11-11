@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { createApi, createCoachApi, httpClient } from './api'
+import { routeFromLocation } from './coach/CoachApp'
 import { applyTelegramTheme, confirmWithTelegram, shareWithTelegram, webApp } from './telegram'
 import './index.css'
 
@@ -24,7 +25,7 @@ if (root && tg?.initData) {
           api={createApi(request)}
           coachApi={createCoachApi(request)}
           confirm={confirmWithTelegram}
-          initialRoute={window.location.hash}
+          initialRoute={routeFromLocation(window.location)}
           backButton={tg.BackButton}
           share={shareWithTelegram}
         />

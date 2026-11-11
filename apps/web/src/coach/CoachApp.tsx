@@ -6,13 +6,13 @@ import {
   Description,
   Input,
   Label,
-  Spinner,
   Tabs,
   TextField,
 } from '@heroui/react'
 import { METRICS, type MetricKey, parseNumber } from '@lekafit/shared'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import type { ClientListItem, ClientProfile, CoachApi, CoachReport, Plan } from '../api'
+import { CenteredSpinner } from '../CenteredSpinner'
 import { Dynamics } from '../Dynamics'
 import { period, shortDate } from '../format'
 import { ReportForm } from '../report/ReportForm'
@@ -30,6 +30,11 @@ export const parseRoute = (hash: string): Route => {
   const report = hash.match(/^#\/coach\/reports\/(\d+)$/)
   if (report?.[1]) return { name: 'report', id: Number(report[1]) }
   return { name: 'clients' }
+}
+
+export const routeFromLocation = ({ search, hash }: { search: string; hash: string }): string => {
+  const report = new URLSearchParams(search).get('report')
+  return report && /^\d+$/.test(report) ? `#/coach/reports/${report}` : hash
 }
 
 const fullName = (c: { firstName: string; lastName: string | null }) =>
@@ -97,7 +102,7 @@ const Clients = ({
   if (!clients)
     return (
       <Loading error={error}>
-        <Spinner />
+        <CenteredSpinner />
       </Loading>
     )
   if (!clients.length)
@@ -236,7 +241,7 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
   if (!profile.value || !reports.value)
     return (
       <Loading error={profile.error ?? reports.error}>
-        <Spinner />
+        <CenteredSpinner />
       </Loading>
     )
   return (
@@ -307,7 +312,7 @@ const ReportView = ({
   if (!report)
     return (
       <Loading error={error}>
-        <Spinner />
+        <CenteredSpinner />
       </Loading>
     )
   return (

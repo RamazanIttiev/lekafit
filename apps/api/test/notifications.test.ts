@@ -52,10 +52,10 @@ describe('coach notification on submit', () => {
     const text = sent[0]?.text ?? ''
     expect(text).toContain('Новый отчёт: Анна Иванова (@anna)')
     expect(text).toContain('Неделя 09.11 — 15.11')
-    expect(text).toContain('Калории: 1850 / 1 800 (+50)')
-    expect(text).toContain('Белки: 115 / 120 (-5)')
-    expect(text).toContain('Шаги: 9000 / 10 000 (90%)')
-    expect(text).toContain('Тренировки: 3 / 3 (100%)')
+    expect(text).toContain('Калории: 1850')
+    expect(text).toContain('Белки: 115')
+    expect(text).toContain('Шаги: 9000')
+    expect(text).toContain('Тренировки: 3')
     expect(text).toContain('Вес: 72,4 → 71,9 (-0,5)')
     expect(text).not.toContain('Жиры')
     expect(text).not.toContain('Талия')
@@ -65,7 +65,7 @@ describe('coach notification on submit', () => {
     const id = await submitFilledReport()
     expect(sent[0]?.webAppButton).toEqual({
       text: 'Открыть отчёт',
-      url: `https://example.test/#/coach/reports/${id}`,
+      url: `https://example.test/?report=${id}`,
     })
   })
 

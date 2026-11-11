@@ -40,7 +40,7 @@ describe('reportSummary', () => {
         '📋 Новый отчёт: Анна Иванова (@anna)',
         'Неделя 09.11 — 15.11',
         '',
-        'Калории: 1850 / 1 800 (+50)',
+        'Калории: 1850',
         '',
         'Вес: 72 → 71 (-1)',
       ].join('\n'),
@@ -52,12 +52,13 @@ describe('reportSummary', () => {
       aReport({ data: { fact: { cal: '1850' }, prev: { weight: '72' }, now: { waist: '70' } } }),
       aUser(),
     )
-    expect(text.endsWith('Калории: 1850 / 1 800 (+50)')).toBe(true)
+    expect(text.endsWith('Калории: 1850')).toBe(true)
   })
 
-  it('shows dashes when the coach had no plan', () => {
+  it('shows only the reported value regardless of plan', () => {
     const text = reportSummary(aReport({ plan: null, data: { fact: { cal: '1850' } } }), aUser())
-    expect(text).toContain('Калории: 1850 / — (—)')
+    expect(text).toContain('Калории: 1850')
+    expect(text).not.toContain('/')
   })
 
   it('handles clients without last name or username', () => {

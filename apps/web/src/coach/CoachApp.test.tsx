@@ -3,7 +3,7 @@ import { render } from 'vitest-browser-react'
 import { aPlan, aReport, dataWith } from '../test/fakeApi'
 import { fakeBackButton } from '../test/fakeBackButton'
 import { aListItem, fakeCoachApi } from '../test/fakeCoachApi'
-import { CoachApp } from './CoachApp'
+import { CoachApp, routeFromLocation } from './CoachApp'
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initialRoute = '#/') => {
   const fake = fakeCoachApi(setup)
@@ -195,5 +195,19 @@ describe('report page', () => {
       .element(screen.getByRole('button', { name: 'Все клиенты' }))
       .not.toBeInTheDocument()
     await expect.element(screen.getByRole('button', { name: 'Назад' })).not.toBeInTheDocument()
+  })
+})
+
+describe('routeFromLocation', () => {
+  it('opens the report named in the query, which survives Telegram rewriting the hash', () => {
+    expect(
+      routeFromLocation({ search: '?report=42', hash: '#tgWebAppData=abc&tgWebAppVersion=8.0' }),
+    ).toBe('#/coach/reports/42')
+  })
+
+  it('falls back to the hash without a valid report param', () => {
+    expect(routeFromLocation({ search: '?report=x', hash: '#/coach/clients/3' })).toBe(
+      '#/coach/clients/3',
+    )
   })
 })

@@ -1,11 +1,9 @@
-import { completionPercent, formatDelta, MEASURES, METRICS, parseNumber } from '@lekafit/shared'
+import { formatDelta, MEASURES, METRICS, parseNumber } from '@lekafit/shared'
 import type { Report } from '../reports/reports.repository'
 import type { User } from '../users/users.repository'
 
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
 const plain = (text: string) => text.replace(/[  ]/g, ' ')
-
-const PERCENT_METRICS: ReadonlySet<string> = new Set(['steps', 'training'])
 
 const clientName = (user: User) => {
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ')
@@ -14,15 +12,7 @@ const clientName = (user: User) => {
 
 export const reportSummary = (report: Report, client: User): string => {
   const metricLines = METRICS.filter((m) => parseNumber(report.data.fact[m.key]) !== null).map(
-    (m) => {
-      const fact = parseNumber(report.data.fact[m.key])
-      const plan = report.plan?.[m.key] ?? null
-      const comparison = PERCENT_METRICS.has(m.key)
-        ? completionPercent({ plan, fact })
-        : formatDelta({ from: plan, to: fact, unit: m.unit })
-      const planText = plan === null ? '—' : plan.toLocaleString('ru-RU')
-      return `${m.label}: ${report.data.fact[m.key]} / ${planText} (${comparison})`
-    },
+    (m) => `${m.label}: ${report.data.fact[m.key]}`,
   )
   const measureLines = MEASURES.filter(
     (m) =>
