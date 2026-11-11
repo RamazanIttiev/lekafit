@@ -1,4 +1,4 @@
-import { Spinner } from '@heroui/react'
+import { Alert, Spinner } from '@heroui/react'
 import { useEffect, useState } from 'react'
 import type { Api, CoachApi, Me } from './api'
 import { ClientApp } from './client/ClientApp'
@@ -19,8 +19,15 @@ export const App = ({ api, coachApi, confirm, initialRoute }: Props) => {
     api.me().then(setMe, (e: Error) => setError(e.message))
   }, [api])
 
-  if (error) return <p className="wrap error">{error}</p>
-  if (!me) return <Spinner className="mx-auto my-10" />
+  if (error)
+    return (
+      <Alert status="danger">
+        <Alert.Content>
+          <Alert.Title>{error}</Alert.Title>
+        </Alert.Content>
+      </Alert>
+    )
+  if (!me) return <Spinner />
   if (me.role === 'COACH') return <CoachApp api={coachApi} initialRoute={initialRoute} />
   return <ClientApp api={api} confirm={confirm} />
 }

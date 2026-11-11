@@ -1,4 +1,15 @@
-import { Button, Card, Chip, Spinner } from '@heroui/react'
+import {
+  Alert,
+  Button,
+  Card,
+  Chip,
+  Description,
+  Input,
+  Label,
+  Spinner,
+  Table,
+  TextField,
+} from '@heroui/react'
 import { METRICS, type MetricKey, parseNumber } from '@lekafit/shared'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import type { ClientListItem, ClientProfile, CoachApi, CoachReport, Plan, Report } from '../api'
@@ -31,36 +42,37 @@ const useLoad = <T,>(load: () => Promise<T>) => {
 }
 
 const Loading = ({ error, children }: { error: string | null; children: ReactNode }) =>
-  error ? <p className="error">{error}</p> : children
+  error ? <Notice status="danger">{error}</Notice> : children
+
+const Notice = ({ status, children }: { status?: 'danger'; children: string }) => (
+  <Alert status={status}>
+    <Alert.Content>
+      <Alert.Title>{children}</Alert.Title>
+    </Alert.Content>
+  </Alert>
+)
 
 const Clients = ({ api, go }: { api: CoachApi; go: (r: Route) => void }) => {
   const { value: clients, error } = useLoad(useCallback(() => api.clients(), [api]))
   if (!clients)
     return (
       <Loading error={error}>
-        <Spinner className="mx-auto my-10" />
+        <Spinner />
       </Loading>
     )
   if (!clients.length)
     return (
-      <p className="notice">
+      <Notice>
         Клиентов пока нет. Отправьте клиентам ссылку на бота — после команды /start они появятся
         здесь.
-      </p>
+      </Notice>
     )
   return (
     <div className="flex flex-col gap-2">
       {clients.map((c: ClientListItem) => (
-        <Button
-          key={c.id}
-          variant="secondary"
-          className="client-row"
-          onPress={() => go({ name: 'client', id: c.id })}
-        >
-          <span className="font-bold">{fullName(c)}</span>
-          <span className="text-xs">
-            {c.lastReportWeek ? `последний: ${shortDate(c.lastReportWeek)}` : 'отчётов нет'}
-          </span>
+        <Button key={c.id} variant="secondary" onPress={() => go({ name: 'client', id: c.id })}>
+          {fullName(c)} ·{' '}
+          {c.lastReportWeek ? `последний: ${shortDate(c.lastReportWeek)}` : 'отчётов нет'}
           {c.unseenReports > 0 && (
             <Chip size="sm" color="accent">
               новых: {c.unseenReports}
@@ -113,70 +125,67 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
   }
 
   return (
-    <Card className="section">
+    <Card>
       <Card.Header>
-        <Card.Title className="section-title">План</Card.Title>
-        <Card.Description className="text-xs text-muted">
-          Клиент видит его в отчёте
-        </Card.Description>
+        <Card.Title>План</Card.Title>
+        <Card.Description>Клиент видит его в отчёте</Card.Description>
       </Card.Header>
-      <Card.Content className="plan-grid">
+      <Card.Content className="grid grid-cols-2 gap-3">
         {METRICS.map((m) => (
-          <label key={m.key} className="field">
-            <span>
-              {m.label}{' '}
-              <small className="text-muted">
-                {m.unit} / {m.scope}
-              </small>
-            </span>
-            <input
-              className="num-input"
-              aria-label={`План ${m.label}`}
-              inputMode="decimal"
-              placeholder="—"
-              value={values[m.key]}
-              onChange={(e) => setValues({ ...values, [m.key]: e.target.value })}
-            />
-          </label>
+          <TextField
+            key={m.key}
+            value={values[m.key]}
+            onChange={(v) => setValues({ ...values, [m.key]: v })}
+          >
+            <Label>{m.label}</Label>
+            <Input inputMode="decimal" placeholder="—" />
+            <Description>
+              {m.unit} / {m.scope}
+            </Description>
+          </TextField>
         ))}
       </Card.Content>
-      <Card.Footer className="flex flex-col items-stretch gap-2">
-        <Button onPress={save}>Сохранить план</Button>
-        {message && <p className="text-sm text-center m-0">{message}</p>}
+      <Card.Footer className="flex flex-col gap-2">
+        <Button fullWidth onPress={save}>
+          Сохранить план
+        </Button>
+        {message && <Card.Description>{message}</Card.Description>}
       </Card.Footer>
     </Card>
   )
 }
 
+const COLUMNS = ['Неделя', 'Вес', 'Талия', 'Ккал', 'Шаги'] as const
+
 const Progress = ({ reports }: { reports: Report[] }) => (
-  <Card className="section">
+  <Card>
     <Card.Header>
-      <Card.Title className="section-title">Динамика</Card.Title>
+      <Card.Title>Динамика</Card.Title>
     </Card.Header>
-    <Card.Content className="overflow-x-auto">
-      <table className="progress" aria-label="Динамика">
-        <thead>
-          <tr>
-            <th>Неделя</th>
-            <th>Вес</th>
-            <th>Талия</th>
-            <th>Ккал</th>
-            <th>Шаги</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reports.map((r) => (
-            <tr key={r.id}>
-              <td>{shortDate(r.weekStart)}</td>
-              <td>{r.data.now.weight || '—'}</td>
-              <td>{r.data.now.waist || '—'}</td>
-              <td>{r.data.fact.cal || '—'}</td>
-              <td>{r.data.fact.steps || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card.Content>
+    <Table>
+      <Table.ScrollContainer>
+        <Table.Content aria-label="Динамика">
+          <Table.Header>
+            {COLUMNS.map((c, i) => (
+              <Table.Column key={c} isRowHeader={i === 0}>
+                {c}
+              </Table.Column>
+            ))}
+          </Table.Header>
+          <Table.Body>
+            {reports.map((r) => (
+              <Table.Row key={r.id}>
+                <Table.Cell>{shortDate(r.weekStart)}</Table.Cell>
+                <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
+                <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>
+                <Table.Cell>{r.data.fact.cal || '—'}</Table.Cell>
+                <Table.Cell>{r.data.fact.steps || '—'}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Content>
+      </Table.ScrollContainer>
+    </Table>
   </Card>
 )
 
@@ -186,12 +195,12 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
   if (!profile.value || !reports.value)
     return (
       <Loading error={profile.error ?? reports.error}>
-        <Spinner className="mx-auto my-10" />
+        <Spinner />
       </Loading>
     )
   return (
     <>
-      <h1 className="title">{fullName(profile.value)}</h1>
+      <h1>{fullName(profile.value)}</h1>
       <PlanEditor api={api} profile={profile.value} />
       {reports.value.length > 0 ? (
         <>
@@ -209,7 +218,7 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
           </div>
         </>
       ) : (
-        <p className="notice">Отправленных отчётов пока нет</p>
+        <Notice>Отправленных отчётов пока нет</Notice>
       )}
     </>
   )
@@ -222,15 +231,13 @@ const ReportView = ({ api, id }: { api: CoachApi; id: number }) => {
   if (!report)
     return (
       <Loading error={error}>
-        <Spinner className="mx-auto my-10" />
+        <Spinner />
       </Loading>
     )
   return (
     <>
-      <div>
-        <p className="eyebrow">Отчёт {period(report)}</p>
-        <h1 className="title">{fullName(report.client)}</h1>
-      </div>
+      <h1>{fullName(report.client)}</h1>
+      <p>Отчёт {period(report)}</p>
       <ReportForm data={report.data} plan={report.plan} readOnly onChange={() => undefined} />
     </>
   )
@@ -239,13 +246,11 @@ const ReportView = ({ api, id }: { api: CoachApi; id: number }) => {
 export const CoachApp = ({ api, initialRoute }: { api: CoachApi; initialRoute: string }) => {
   const [route, setRoute] = useState<Route>(parseRoute(initialRoute))
   return (
-    <main className="wrap">
+    <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
       {route.name !== 'clients' && (
-        <nav className="tabs">
-          <Button size="sm" variant="ghost" onPress={() => setRoute({ name: 'clients' })}>
-            Все клиенты
-          </Button>
-        </nav>
+        <Button size="sm" variant="ghost" onPress={() => setRoute({ name: 'clients' })}>
+          Все клиенты
+        </Button>
       )}
       {route.name === 'clients' && <Clients api={api} go={setRoute} />}
       {route.name === 'client' && <Client key={route.id} api={api} id={route.id} go={setRoute} />}

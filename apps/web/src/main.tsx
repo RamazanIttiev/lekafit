@@ -2,13 +2,16 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { createApi, createCoachApi, httpClient } from './api'
-import { confirmWithTelegram, webApp } from './telegram'
-import './styles.css'
+import { applyTelegramTheme, confirmWithTelegram, webApp } from './telegram'
+import 'tailwindcss/index.css'
+import '@heroui/react/styles'
 
 const root = document.getElementById('root')
 const tg = webApp()
 
 if (root && tg?.initData) {
+  applyTelegramTheme(tg)
+  tg.onEvent?.('themeChanged', () => applyTelegramTheme(tg))
   tg.ready()
   tg.expand()
   const request = httpClient({
@@ -26,5 +29,5 @@ if (root && tg?.initData) {
     </StrictMode>,
   )
 } else if (root) {
-  root.innerHTML = '<p class="wrap">Откройте отчёт через бота LekaFit в Telegram.</p>'
+  root.textContent = 'Откройте отчёт через бота LekaFit в Telegram.'
 }

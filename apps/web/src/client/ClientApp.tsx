@@ -1,4 +1,4 @@
-import { Button, Chip, Spinner } from '@heroui/react'
+import { Alert, Button, Chip, Spinner, Tabs } from '@heroui/react'
 import { missingRequiredFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, Report, ReportData } from '../api'
@@ -24,7 +24,14 @@ const confirmMessage = (data: ReportData) => {
   return missing.length ? `${base}\n\nНе заполнено: ${missing.join(', ')}.` : base
 }
 
-const SentBanner = () => <p className="sent">Отчёт отправлен тренеру</p>
+const Notice = ({ status, children }: { status?: 'success' | 'danger'; children: string }) => (
+  <Alert status={status}>
+    <Alert.Indicator />
+    <Alert.Content>
+      <Alert.Title>{children}</Alert.Title>
+    </Alert.Content>
+  </Alert>
+)
 
 const CurrentReport = ({ api, confirm }: Props) => {
   const [report, setReport] = useState<Report | null>(null)
@@ -43,8 +50,8 @@ const CurrentReport = ({ api, confirm }: Props) => {
   )
   const autosave = useAutosave(save)
 
-  if (error) return <p className="error">{error}</p>
-  if (!report) return <Spinner className="mx-auto my-10" />
+  if (error) return <Notice status="danger">{error}</Notice>
+  if (!report) return <Spinner />
 
   const readOnly = report.status === 'SUBMITTED' || sending
 
@@ -70,24 +77,19 @@ const CurrentReport = ({ api, confirm }: Props) => {
   return (
     <>
       <div className="flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Отчёт за неделю</p>
-          <h1 className="title">{period(report)}</h1>
-        </div>
+        <h1>{period(report)}</h1>
         {report.status === 'DRAFT' && autosave.status !== 'idle' && (
           <Chip size="sm" color={autosave.status === 'error' ? 'danger' : 'default'}>
             {SAVE_LABEL[autosave.status]}
           </Chip>
         )}
       </div>
-      {report.status === 'SUBMITTED' && <SentBanner />}
+      {report.status === 'SUBMITTED' && <Notice status="success">Отчёт отправлен тренеру</Notice>}
       <ReportForm data={report.data} plan={report.plan} readOnly={readOnly} onChange={onChange} />
       {report.status === 'DRAFT' && (
-        <div className="dock">
-          <Button fullWidth size="lg" isDisabled={sending} onPress={submit}>
-            Отправить тренеру
-          </Button>
-        </div>
+        <Button fullWidth size="lg" isDisabled={sending} onPress={submit}>
+          Отправить тренеру
+        </Button>
       )}
     </>
   )
@@ -98,19 +100,13 @@ const History = ({ api, onOpen }: { api: Api; onOpen: (id: number) => void }) =>
   useEffect(() => {
     api.listReports().then(setReports)
   }, [api])
-  if (!reports) return <Spinner className="mx-auto my-10" />
-  if (!reports.length) return <p className="notice">Отчётов пока нет</p>
+  if (!reports) return <Spinner />
+  if (!reports.length) return <Notice>Отчётов пока нет</Notice>
   return (
     <div className="flex flex-col gap-2">
       {reports.map((r) => (
-        <Button
-          key={r.id}
-          variant="secondary"
-          className="justify-between"
-          onPress={() => onOpen(r.id)}
-        >
-          <span>{period(r)}</span>
-          <span className="text-xs">{r.status === 'SUBMITTED' ? 'отправлен' : 'черновик'}</span>
+        <Button key={r.id} variant="secondary" onPress={() => onOpen(r.id)}>
+          {period(r)} · {r.status === 'SUBMITTED' ? 'отправлен' : 'черновик'}
         </Button>
       ))}
     </div>
@@ -122,10 +118,10 @@ const PastReport = ({ api, id }: { api: Api; id: number }) => {
   useEffect(() => {
     api.getReport(id).then(setReport)
   }, [api, id])
-  if (!report) return <Spinner className="mx-auto my-10" />
+  if (!report) return <Spinner />
   return (
     <>
-      <h1 className="title">{period(report)}</h1>
+      <h1>{period(report)}</h1>
       <ReportForm data={report.data} plan={report.plan} readOnly onChange={() => undefined} />
     </>
   )
@@ -134,28 +130,36 @@ const PastReport = ({ api, id }: { api: Api; id: number }) => {
 export const ClientApp = ({ api, confirm }: Props) => {
   const [view, setView] = useState<View>({ name: 'current' })
   return (
-    <main className="wrap">
-      <nav className="tabs">
-        <Button
-          size="sm"
-          variant={view.name === 'current' ? 'primary' : 'ghost'}
-          onPress={() => setView({ name: 'current' })}
-        >
-          Эта неделя
-        </Button>
-        <Button
-          size="sm"
-          variant={view.name === 'current' ? 'ghost' : 'primary'}
-          onPress={() => setView({ name: 'history' })}
-        >
-          История
-        </Button>
-      </nav>
-      {view.name === 'current' && <CurrentReport api={api} confirm={confirm} />}
-      {view.name === 'history' && (
-        <History api={api} onOpen={(id) => setView({ name: 'past', id })} />
-      )}
-      {view.name === 'past' && <PastReport api={api} id={view.id} />}
+    <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
+      <Tabs
+        selectedKey={view.name === 'current' ? 'current' : 'history'}
+        onSelectionChange={(key) =>
+          setView(key === 'current' ? { name: 'current' } : { name: 'history' })
+        }
+      >
+        <Tabs.ListContainer>
+          <Tabs.List aria-label="Отчёты">
+            <Tabs.Tab id="current">
+              Эта неделя
+              <Tabs.Indicator />
+            </Tabs.Tab>
+            <Tabs.Tab id="history">
+              История
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+        <Tabs.Panel id="current" className="flex flex-col gap-3">
+          <CurrentReport api={api} confirm={confirm} />
+        </Tabs.Panel>
+        <Tabs.Panel id="history" className="flex flex-col gap-3">
+          {view.name === 'past' ? (
+            <PastReport api={api} id={view.id} />
+          ) : (
+            <History api={api} onOpen={(id) => setView({ name: 'past', id })} />
+          )}
+        </Tabs.Panel>
+      </Tabs>
     </main>
   )
 }

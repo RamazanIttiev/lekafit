@@ -1,4 +1,4 @@
-import { Card, TextArea } from '@heroui/react'
+import { Alert, Card, Input, Label, ListBox, Select, TextArea, TextField } from '@heroui/react'
 import {
   completionPercent,
   FEEDBACK,
@@ -21,33 +21,41 @@ type Props = {
 }
 
 const Section = ({
-  index,
   title,
   hint,
   children,
 }: {
-  index: string
   title: string
   hint: string
   children: ReactNode
 }) => (
-  <Card className="section">
-    <Card.Header className="flex flex-row items-center gap-3">
-      <span className="section-index">{index}</span>
-      <div>
-        <Card.Title className="section-title">{title}</Card.Title>
-        <Card.Description className="text-xs text-muted">{hint}</Card.Description>
-      </div>
+  <Card>
+    <Card.Header>
+      <Card.Title>{title}</Card.Title>
+      <Card.Description>{hint}</Card.Description>
     </Card.Header>
     <Card.Content>{children}</Card.Content>
   </Card>
 )
 
+const Row = ({ children }: { children: ReactNode }) => (
+  <div className="grid grid-cols-4 items-center gap-2">{children}</div>
+)
+
 const GridHead = ({ columns }: { columns: [string, string, string, string] }) => (
-  <div className="grid-row grid-head" aria-hidden="true">
+  <Row>
     {columns.map((c) => (
-      <span key={c}>{c}</span>
+      <Card.Description key={c} aria-hidden="true">
+        {c}
+      </Card.Description>
     ))}
+  </Row>
+)
+
+const MetricName = ({ label, unit }: { label: string; unit: string }) => (
+  <div>
+    <Label>{label}</Label>
+    <Card.Description>{unit}</Card.Description>
   </div>
 )
 
@@ -62,21 +70,22 @@ const NumberInput = ({
   disabled: boolean
   onChange: (value: string) => void
 }) => (
-  <input
-    className="num-input"
-    aria-label={label}
-    inputMode="decimal"
-    placeholder="—"
-    value={value}
-    disabled={disabled}
-    onChange={(e) => onChange(e.target.value)}
-  />
+  <TextField aria-label={label} value={value} isDisabled={disabled} onChange={onChange}>
+    <Input inputMode="decimal" placeholder="—" />
+  </TextField>
 )
 
-const Delta = ({ label, value }: { label: string; value: string }) => (
-  <output aria-label={label} className={value === '—' ? 'delta empty' : 'delta'}>
-    {value}
-  </output>
+const Value = ({ label, children }: { label: string; children: ReactNode }) => (
+  <output aria-label={label}>{children}</output>
+)
+
+const Stat = ({ label, value }: { label: string; value: string }) => (
+  <Card variant="secondary">
+    <Card.Description>{label}</Card.Description>
+    <Card.Title>
+      <Value label={label}>{value}</Value>
+    </Card.Title>
+  </Card>
 )
 
 export const ReportForm = ({ data, plan, readOnly, onChange }: Props) => {
@@ -88,138 +97,135 @@ export const ReportForm = ({ data, plan, readOnly, onChange }: Props) => {
   return (
     <div className="flex flex-col gap-3">
       <Section
-        index="01"
         title="Питание и активность"
         hint="Среднее за 7 дней из FatSecret и приложения шагов. Тренировки — количество за неделю."
       >
-        {plan === null && <p className="notice">Тренер ещё не задал план</p>}
-        <GridHead columns={['Показатель', 'План', 'Факт', 'Разница']} />
-        {METRICS.map((m) => (
-          <div className="grid-row" key={m.key}>
-            <div className="metric-name">
-              {m.label}
-              <small>
-                {m.unit} / {m.scope}
-              </small>
-            </div>
-            <output aria-label={`План ${m.label}`} className="plan-cell">
-              {plainNumber(planValue(m.key))}
-            </output>
-            <NumberInput
-              label={`Факт ${m.label}`}
-              value={data.fact[m.key]}
-              disabled={readOnly}
-              onChange={(v) => set('fact', { [m.key]: v })}
-            />
-            <Delta
-              label={`Разница ${m.label}`}
-              value={formatDelta({
-                from: planValue(m.key),
-                to: parseNumber(data.fact[m.key]),
-                unit: m.unit,
-              })}
-            />
-          </div>
-        ))}
-        <div className="stats">
-          <div className="stat">
-            <span>Выполнение тренировок</span>
-            <output aria-label="Выполнение тренировок">
-              {completionPercent({
+        <div className="flex flex-col gap-3">
+          {plan === null && (
+            <Alert>
+              <Alert.Content>
+                <Alert.Title>Тренер ещё не задал план</Alert.Title>
+              </Alert.Content>
+            </Alert>
+          )}
+          <GridHead columns={['Показатель', 'План', 'Факт', 'Разница']} />
+          {METRICS.map((m) => (
+            <Row key={m.key}>
+              <MetricName label={m.label} unit={`${m.unit} / ${m.scope}`} />
+              <Value label={`План ${m.label}`}>{plainNumber(planValue(m.key))}</Value>
+              <NumberInput
+                label={`Факт ${m.label}`}
+                value={data.fact[m.key]}
+                disabled={readOnly}
+                onChange={(v) => set('fact', { [m.key]: v })}
+              />
+              <Value label={`Разница ${m.label}`}>
+                {formatDelta({
+                  from: planValue(m.key),
+                  to: parseNumber(data.fact[m.key]),
+                  unit: m.unit,
+                })}
+              </Value>
+            </Row>
+          ))}
+          <div className="grid grid-cols-2 gap-2">
+            <Stat
+              label="Выполнение тренировок"
+              value={completionPercent({
                 plan: planValue('training'),
                 fact: parseNumber(data.fact.training),
               })}
-            </output>
-          </div>
-          <div className="stat">
-            <span>Средние шаги</span>
-            <output aria-label="Средние шаги">
-              {completionPercent({ plan: planValue('steps'), fact: parseNumber(data.fact.steps) })}
-            </output>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        index="02"
-        title="Замеры"
-        hint="Заполняйте то, что измеряли. Остальное можно оставить пустым."
-      >
-        <GridHead columns={['Показатель', 'Было', 'Стало', 'Разница']} />
-        {MEASURES.map((m) => (
-          <div className="grid-row" key={m.key}>
-            <div className="metric-name">
-              {m.label}
-              <small>{m.unit}</small>
-            </div>
-            <NumberInput
-              label={`Было ${m.label}`}
-              value={data.prev[m.key]}
-              disabled={readOnly}
-              onChange={(v) => set('prev', { [m.key]: v })}
             />
-            <NumberInput
-              label={`Стало ${m.label}`}
-              value={data.now[m.key]}
-              disabled={readOnly}
-              onChange={(v) => set('now', { [m.key]: v })}
-            />
-            <Delta
-              label={`Разница ${m.label}`}
-              value={formatDelta({
-                from: parseNumber(data.prev[m.key]),
-                to: parseNumber(data.now[m.key]),
-                unit: m.unit,
+            <Stat
+              label="Средние шаги"
+              value={completionPercent({
+                plan: planValue('steps'),
+                fact: parseNumber(data.fact.steps),
               })}
             />
           </div>
-        ))}
-      </Section>
-
-      <Section index="03" title="Самочувствие" hint="Средняя оценка за последние 7 дней">
-        <div className="flex flex-col gap-3">
-          {WELLBEING.map((w) => (
-            <label className="field" key={w.key}>
-              <span>{w.label}</span>
-              <select
-                aria-label={w.label}
-                className="select"
-                value={data.wellbeing[w.key]}
-                disabled={readOnly}
-                onChange={(e) => set('wellbeing', { [w.key]: e.target.value })}
-              >
-                <option value="">Выбрать</option>
-                {w.options.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
-            </label>
-          ))}
-          <div className="field">
-            <span aria-hidden="true">Комментарии по самочувствию</span>
-            <TextArea
-              aria-label="Комментарии по самочувствию"
-              value={data.wellbeing.note}
-              disabled={readOnly}
-              placeholder="Только если есть что уточнить…"
-              onChange={(e) => set('wellbeing', { note: e.target.value })}
-            />
-          </div>
         </div>
       </Section>
 
-      <Section index="04" title="Обратная связь" hint="Коротко, своими словами">
+      <Section title="Замеры" hint="Заполняйте то, что измеряли. Остальное можно оставить пустым.">
+        <div className="flex flex-col gap-3">
+          <GridHead columns={['Показатель', 'Было', 'Стало', 'Разница']} />
+          {MEASURES.map((m) => (
+            <Row key={m.key}>
+              <MetricName label={m.label} unit={m.unit} />
+              <NumberInput
+                label={`Было ${m.label}`}
+                value={data.prev[m.key]}
+                disabled={readOnly}
+                onChange={(v) => set('prev', { [m.key]: v })}
+              />
+              <NumberInput
+                label={`Стало ${m.label}`}
+                value={data.now[m.key]}
+                disabled={readOnly}
+                onChange={(v) => set('now', { [m.key]: v })}
+              />
+              <Value label={`Разница ${m.label}`}>
+                {formatDelta({
+                  from: parseNumber(data.prev[m.key]),
+                  to: parseNumber(data.now[m.key]),
+                  unit: m.unit,
+                })}
+              </Value>
+            </Row>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Самочувствие" hint="Средняя оценка за последние 7 дней">
+        <div className="flex flex-col gap-3">
+          {WELLBEING.map((w) => (
+            <Select
+              key={w.key}
+              placeholder="Выбрать"
+              isDisabled={readOnly}
+              selectedKey={data.wellbeing[w.key] || null}
+              onSelectionChange={(key) => set('wellbeing', { [w.key]: key ? String(key) : '' })}
+            >
+              <Label>{w.label}</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {w.options.map((o) => (
+                    <ListBox.Item key={o} id={o} textValue={o}>
+                      {o}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          ))}
+          <TextField
+            value={data.wellbeing.note}
+            isDisabled={readOnly}
+            onChange={(note) => set('wellbeing', { note })}
+          >
+            <Label>Комментарии по самочувствию</Label>
+            <TextArea placeholder="Только если есть что уточнить…" />
+          </TextField>
+        </div>
+      </Section>
+
+      <Section title="Обратная связь" hint="Коротко, своими словами">
         <div className="flex flex-col gap-3">
           {FEEDBACK.map((f) => (
-            <div className="field" key={f.key}>
-              <span aria-hidden="true">{f.label}</span>
-              <TextArea
-                aria-label={f.label}
-                value={data.feedback[f.key]}
-                disabled={readOnly}
-                onChange={(e) => set('feedback', { [f.key]: e.target.value })}
-              />
-            </div>
+            <TextField
+              key={f.key}
+              value={data.feedback[f.key]}
+              isDisabled={readOnly}
+              onChange={(v) => set('feedback', { [f.key]: v })}
+            >
+              <Label>{f.label}</Label>
+              <TextArea />
+            </TextField>
           ))}
         </div>
       </Section>

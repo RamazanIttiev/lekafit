@@ -52,7 +52,8 @@ describe('weekly report form', () => {
   it('saves answers automatically', async () => {
     const { screen, saves } = await renderClient()
     await screen.getByLabelText('Факт Белки').fill('115')
-    await screen.getByLabelText('Энергия', { exact: true }).selectOptions('4 — хорошая')
+    await screen.getByRole('button', { name: /Энергия/ }).click()
+    await screen.getByRole('option', { name: '4 — хорошая' }).click()
     await screen.getByLabelText('Что получилось хорошо?').fill('Все тренировки')
     await expect.element(screen.getByText('Сохранено')).toBeVisible()
     await expect
@@ -111,7 +112,7 @@ describe('report history', () => {
       data: dataWith({ fact: { cal: '1777' } }),
     })
     const { screen } = await renderClient({ history: [past] })
-    await screen.getByRole('button', { name: 'История' }).click()
+    await screen.getByRole('tab', { name: 'История' }).click()
     await screen.getByRole('button', { name: /02\.11 — 08\.11/ }).click()
     await expect.element(screen.getByLabelText('Факт Калории')).toHaveValue('1777')
   })

@@ -45,9 +45,9 @@ describe('client page', () => {
       { profile: { id: 1, firstName: 'Анна', lastName: null, username: null, plan: aPlan() } },
       clientRoute,
     )
-    await expect.element(screen.getByLabelText('План Калории')).toHaveValue('1800')
-    await screen.getByLabelText('План Калории').fill('1 650')
-    await screen.getByLabelText('План Тренировки').fill('')
+    await expect.element(screen.getByLabelText('Калории', { exact: true })).toHaveValue('1800')
+    await screen.getByLabelText('Калории', { exact: true }).fill('1 650')
+    await screen.getByLabelText('Тренировки', { exact: true }).fill('')
     await screen.getByRole('button', { name: 'Сохранить план' }).click()
     await expect.element(screen.getByText('План сохранён')).toBeVisible()
     expect(savedPlans).toEqual([aPlan({ cal: 1650, training: null })])
@@ -55,7 +55,7 @@ describe('client page', () => {
 
   it('refuses to save a plan with invalid numbers', async () => {
     const { screen, savedPlans } = await renderCoach({}, clientRoute)
-    await screen.getByLabelText('План Калории').fill('много')
+    await screen.getByLabelText('Калории', { exact: true }).fill('много')
     await screen.getByRole('button', { name: 'Сохранить план' }).click()
     await expect.element(screen.getByText('Проверьте значения: Калории')).toBeVisible()
     expect(savedPlans).toEqual([])
@@ -83,7 +83,7 @@ describe('client page', () => {
       },
       clientRoute,
     )
-    const table = screen.getByRole('table', { name: 'Динамика' })
+    const table = screen.getByRole('grid', { name: 'Динамика' })
     await expect.element(table).toBeVisible()
     const rows = table
       .getByRole('row')
