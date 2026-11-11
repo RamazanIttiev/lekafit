@@ -2,15 +2,13 @@ import { Alert, Button, Chip, Spinner, Tabs } from '@heroui/react'
 import { missingFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, Report, ReportData } from '../api'
+import { Dynamics } from '../Dynamics'
 import { period } from '../format'
 import { ReportForm } from '../report/ReportForm'
 import { type SaveStatus, useAutosave } from '../report/useAutosave'
-import { type BackButton, hapticSuccess } from '../telegram'
-import { useBackButton } from '../useBackButton'
+import { hapticSuccess } from '../telegram'
 
 type Props = { api: Api; confirm: (message: string) => Promise<boolean> }
-
-type View = { name: 'current' } | { name: 'history' } | { name: 'past'; id: number }
 
 const SAVE_LABEL: Record<SaveStatus, string> = {
   idle: '',
@@ -120,74 +118,37 @@ const CurrentReport = ({ api, confirm }: Props) => {
   )
 }
 
-const History = ({ api, onOpen }: { api: Api; onOpen: (id: number) => void }) => {
+const Progress = ({ api }: { api: Api }) => {
   const [reports, setReports] = useState<Report[] | null>(null)
   useEffect(() => {
     api.listReports().then(setReports)
   }, [api])
   if (!reports) return <Spinner />
   if (!reports.length) return <Notice>Отчётов пока нет</Notice>
-  return (
-    <div className="flex flex-col gap-2">
-      {reports.map((r) => (
-        <Button key={r.id} variant="primary" onPress={() => onOpen(r.id)}>
-          {period(r)} · {r.status === 'SUBMITTED' ? 'отправлен' : 'черновик'}
-        </Button>
-      ))}
-    </div>
-  )
+  return <Dynamics reports={reports} />
 }
 
-const PastReport = ({ api, id }: { api: Api; id: number }) => {
-  const [report, setReport] = useState<Report | null>(null)
-  useEffect(() => {
-    api.getReport(id).then(setReport)
-  }, [api, id])
-  if (!report) return <Spinner />
-  return (
-    <>
-      <h1>{period(report)}</h1>
-      <ReportForm data={report.data} plan={report.plan} readOnly onChange={() => undefined} />
-    </>
-  )
-}
-
-export const ClientApp = ({ api, confirm, backButton }: Props & { backButton: BackButton }) => {
-  const [view, setView] = useState<View>({ name: 'current' })
-  const backToHistory = useCallback(() => setView({ name: 'history' }), [])
-  useBackButton(backButton, view.name === 'past' ? backToHistory : null)
-  return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
-      <Tabs
-        variant={'primary'}
-        selectedKey={view.name === 'current' ? 'current' : 'history'}
-        onSelectionChange={(key) =>
-          setView(key === 'current' ? { name: 'current' } : { name: 'history' })
-        }
-      >
-        <Tabs.ListContainer>
-          <Tabs.List aria-label="Отчёты">
-            <Tabs.Tab id="current">
-              Эта неделя
-              <Tabs.Indicator />
-            </Tabs.Tab>
-            <Tabs.Tab id="history">
-              История
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <Tabs.Panel id="current" className="flex flex-col gap-3">
-          <CurrentReport api={api} confirm={confirm} />
-        </Tabs.Panel>
-        <Tabs.Panel id="history" className="flex flex-col gap-3">
-          {view.name === 'past' ? (
-            <PastReport api={api} id={view.id} />
-          ) : (
-            <History api={api} onOpen={(id) => setView({ name: 'past', id })} />
-          )}
-        </Tabs.Panel>
-      </Tabs>
-    </main>
-  )
-}
+export const ClientApp = ({ api, confirm }: Props) => (
+  <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
+    <Tabs variant="primary">
+      <Tabs.ListContainer>
+        <Tabs.List aria-label="Отчёты">
+          <Tabs.Tab id="current">
+            Эта неделя
+            <Tabs.Indicator />
+          </Tabs.Tab>
+          <Tabs.Tab id="progress">
+            Прогресс
+            <Tabs.Indicator />
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs.ListContainer>
+      <Tabs.Panel id="current" className="flex flex-col gap-3">
+        <CurrentReport api={api} confirm={confirm} />
+      </Tabs.Panel>
+      <Tabs.Panel id="progress" className="flex flex-col gap-3">
+        <Progress api={api} />
+      </Tabs.Panel>
+    </Tabs>
+  </main>
+)

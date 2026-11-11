@@ -35,5 +35,5 @@ export const App = ({ api, coachApi, confirm, initialRoute, backButton, share }:
     return (
       <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} share={share} />
     )
-  return <ClientApp api={api} confirm={confirm} backButton={backButton} />
+  return <ClientApp api={api} confirm={confirm} />
 }
