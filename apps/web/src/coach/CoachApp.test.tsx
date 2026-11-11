@@ -8,10 +8,16 @@ import { CoachApp } from './CoachApp'
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initialRoute = '#/') => {
   const fake = fakeCoachApi(setup)
   const back = fakeBackButton()
+  const shared: Array<{ url: string; text: string }> = []
   const screen = await render(
-    <CoachApp api={fake.api} initialRoute={initialRoute} backButton={back.backButton} />,
+    <CoachApp
+      api={fake.api}
+      initialRoute={initialRoute}
+      backButton={back.backButton}
+      share={(url, text) => shared.push({ url, text })}
+    />,
   )
-  return { ...fake, back, screen }
+  return { ...fake, back, screen, shared }
 }
 
 describe('client list', () => {
@@ -29,6 +35,19 @@ describe('client list', () => {
   it('tells the coach how clients join when there are none yet', async () => {
     const { screen } = await renderCoach({ clients: [] })
     await expect.element(screen.getByText(/Клиентов пока нет/)).toBeVisible()
+  })
+
+  it('lets the coach invite a client through the Telegram share sheet', async () => {
+    const { screen, shared } = await renderCoach({ clients: [aListItem()] })
+    await screen.getByRole('button', { name: 'Добавить клиента' }).click()
+    await expect
+      .poll(() => shared)
+      .toEqual([{ url: 'https://t.me/lekafit_bot', text: expect.stringContaining('LekaFit') }])
+  })
+
+  it('offers the invite even when there are no clients yet', async () => {
+    const { screen } = await renderCoach({ clients: [] })
+    await expect.element(screen.getByRole('button', { name: 'Добавить клиента' })).toBeVisible()
   })
 
   it('opens a client', async () => {

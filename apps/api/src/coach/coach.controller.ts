@@ -7,6 +7,11 @@ import { CoachService } from './coach.service'
 export class CoachController {
   constructor(@Inject(CoachService) private readonly coach: CoachService) {}
 
+  @Get('invite')
+  invite() {
+    return this.coach.invite()
+  }
+
   @Get('clients')
   clients() {
     return this.coach.clients()

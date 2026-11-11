@@ -9,6 +9,7 @@ type TelegramWebApp = {
   initData: string
   ready: () => void
   expand: () => void
+  openTelegramLink: (url: string) => void
   showConfirm: (message: string, callback: (ok: boolean) => void) => void
   HapticFeedback?: { notificationOccurred: (type: 'success' | 'error' | 'warning') => void }
   BackButton: BackButton
@@ -30,6 +31,13 @@ export const confirmWithTelegram = (message: string): Promise<boolean> => {
   const tg = webApp()
   if (!tg?.initData) return Promise.resolve(window.confirm(message))
   return new Promise((resolve) => tg.showConfirm(message, resolve))
+}
+
+export const shareWithTelegram = (url: string, text: string) => {
+  const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+  const tg = webApp()
+  if (tg?.initData) tg.openTelegramLink(link)
+  else window.open(link, '_blank')
 }
 
 export const hapticSuccess = () => webApp()?.HapticFeedback?.notificationOccurred('success')

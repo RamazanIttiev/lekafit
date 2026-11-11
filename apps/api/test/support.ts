@@ -62,7 +62,7 @@ export const startApp = async (
   dependencies: AppOverrides = {},
 ) => {
   const app = await createApp(testConfig(overrides), {
-    telegram: { send: async () => {} },
+    telegram: { send: async () => {}, botUsername: async () => 'lekafit_test_bot' },
     ...dependencies,
   })
   await app.init()

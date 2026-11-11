@@ -21,12 +21,15 @@ const submitReport = async (user: TelegramUser, data: object = {}) => {
 }
 
 describe('coach-only access', () => {
-  it.each(['/coach/clients', '/coach/clients/1', '/coach/clients/1/reports', '/coach/reports/1'])(
-    'forbids clients from %s',
-    async (url) => {
-      await as(app, aClient()).get(url).expect(403)
-    },
-  )
+  it.each([
+    '/coach/clients',
+    '/coach/clients/1',
+    '/coach/clients/1/reports',
+    '/coach/reports/1',
+    '/coach/invite',
+  ])('forbids clients from %s', async (url) => {
+    await as(app, aClient()).get(url).expect(403)
+  })
 
   it('forbids clients from changing plans', async () => {
     const client = aClient()
@@ -156,5 +159,12 @@ describe('client report history', () => {
   it('does not show drafts to the coach', async () => {
     const { body } = await as(app, aClient()).get('/reports/current')
     await coach().get(`/coach/reports/${body.id}`).expect(404)
+  })
+})
+
+describe('GET /coach/invite', () => {
+  it('gives the coach a link to the bot that clients can open to join', async () => {
+    const res = await coach().get('/coach/invite').expect(200)
+    expect(res.body).toEqual({ url: 'https://t.me/lekafit_test_bot' })
   })
 })

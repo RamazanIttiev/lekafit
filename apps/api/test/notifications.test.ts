@@ -3,7 +3,10 @@ import type { SentMessage } from '../src/bot/telegram.gateway'
 import { aClient, as, COACH_ID, resetDatabase, seedPlan, startApp } from './support'
 
 const sent: SentMessage[] = []
-const app = await startApp({}, { telegram: { send: async (m) => void sent.push(m) } })
+const app = await startApp(
+  {},
+  { telegram: { send: async (m) => void sent.push(m), botUsername: async () => 'bot' } },
+)
 const lastWeekApp = await startApp({ now: () => new Date(2026, 10, 6, 12) })
 afterAll(async () => {
   await app.close()
@@ -69,7 +72,12 @@ describe('coach notification on submit', () => {
   it('still submits the report if Telegram is unreachable', async () => {
     const failing = await startApp(
       {},
-      { telegram: { send: async () => Promise.reject(new Error('network')) } },
+      {
+        telegram: {
+          send: async () => Promise.reject(new Error('network')),
+          botUsername: async () => 'bot',
+        },
+      },
     )
     const client = aClient()
     const { body } = await as(failing, client).get('/reports/current')

@@ -32,6 +32,7 @@ export const fakeCoachApi = (options: {
       return plan
     },
     clientReports: async () => reports,
+    invite: async () => ({ url: 'https://t.me/lekafit_bot' }),
     report: async (id) => {
       const found = reports.find((r) => r.id === id)
       if (!found) throw new Error('not found')

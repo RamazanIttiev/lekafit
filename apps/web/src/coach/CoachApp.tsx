@@ -54,7 +54,44 @@ const Notice = ({ status, children }: { status?: 'danger'; children: string }) =
   </Alert>
 )
 
-const Clients = ({ api, go }: { api: CoachApi; go: (r: Route) => void }) => {
+const INVITE_TEXT = 'Привет! Это LekaFit — здесь вы будете заполнять недельный отчёт для тренера.'
+
+const InviteButton = ({
+  api,
+  share,
+}: {
+  api: CoachApi
+  share: (url: string, text: string) => void
+}) => {
+  const [error, setError] = useState<string | null>(null)
+  const invite = async () => {
+    try {
+      const { url } = await api.invite()
+      setError(null)
+      share(url, INVITE_TEXT)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось получить ссылку')
+    }
+  }
+  return (
+    <>
+      <Button fullWidth onPress={invite}>
+        Добавить клиента
+      </Button>
+      {error && <Notice status="danger">{error}</Notice>}
+    </>
+  )
+}
+
+const Clients = ({
+  api,
+  go,
+  share,
+}: {
+  api: CoachApi
+  go: (r: Route) => void
+  share: (url: string, text: string) => void
+}) => {
   const { value: clients, error } = useLoad(useCallback(() => api.clients(), [api]))
   if (!clients)
     return (
@@ -64,13 +101,17 @@ const Clients = ({ api, go }: { api: CoachApi; go: (r: Route) => void }) => {
     )
   if (!clients.length)
     return (
-      <Notice>
-        Клиентов пока нет. Отправьте клиентам ссылку на бота — после команды /start они появятся
-        здесь.
-      </Notice>
+      <div className="flex flex-col gap-3">
+        <Notice>
+          Клиентов пока нет. Нажмите «Добавить клиента» и отправьте ссылку — после команды /start
+          человек появится здесь.
+        </Notice>
+        <InviteButton api={api} share={share} />
+      </div>
     )
   return (
     <div className="flex flex-col gap-2">
+      <InviteButton api={api} share={share} />
       {clients.map((c: ClientListItem) => (
         <Button key={c.id} variant="secondary" onPress={() => go({ name: 'client', id: c.id })}>
           {fullName(c)} ·{' '}
@@ -265,17 +306,19 @@ export const CoachApp = ({
   api,
   initialRoute,
   backButton,
+  share,
 }: {
   api: CoachApi
   initialRoute: string
   backButton: BackButton
+  share: (url: string, text: string) => void
 }) => {
   const [route, setRoute] = useState<Route>(parseRoute(initialRoute))
   const toClients = useCallback(() => setRoute({ name: 'clients' }), [])
   useBackButton(backButton, route.name === 'client' ? toClients : null)
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
-      {route.name === 'clients' && <Clients api={api} go={setRoute} />}
+      {route.name === 'clients' && <Clients api={api} go={setRoute} share={share} />}
       {route.name === 'client' && <Client key={route.id} api={api} id={route.id} go={setRoute} />}
       {route.name === 'report' && (
         <ReportView key={route.id} api={api} id={route.id} backButton={backButton} go={setRoute} />

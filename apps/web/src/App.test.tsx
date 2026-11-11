@@ -26,6 +26,7 @@ const renderAs = async (role: 'CLIENT' | 'COACH') => {
       confirm={vi.fn(async () => true)}
       initialRoute="#/"
       backButton={fakeBackButton().backButton}
+      share={vi.fn()}
     />,
   )
 }

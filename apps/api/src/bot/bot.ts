@@ -37,6 +37,10 @@ export class GrammyGateway
     await this.bot.api.sendMessage(message.chatId, message.text, keyboard(message.webAppButton))
   }
 
+  async botUsername(): Promise<string> {
+    return (await this.bot.api.getMe()).username
+  }
+
   async onApplicationBootstrap() {
     if (!this.config.startBot) return
     await this.bot.api.setChatMenuButton({

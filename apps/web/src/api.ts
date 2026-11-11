@@ -52,6 +52,7 @@ export type CoachApi = {
   setPlan: (id: number, plan: Plan) => Promise<Plan>
   clientReports: (id: number) => Promise<Report[]>
   report: (id: number) => Promise<CoachReport>
+  invite: () => Promise<{ url: string }>
 }
 
 export type Api = {
@@ -116,4 +117,5 @@ export const createCoachApi = (request: Request): CoachApi => ({
     request(`/coach/clients/${id}/plan`, planSchema, { method: 'PUT', body: plan }),
   clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
   report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
+  invite: () => request('/coach/invite', z.object({ url: z.string() })),
 })

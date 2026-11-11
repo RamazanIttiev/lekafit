@@ -11,9 +11,10 @@ type Props = {
   confirm: (message: string) => Promise<boolean>
   initialRoute: string
   backButton: BackButton
+  share: (url: string, text: string) => void
 }
 
-export const App = ({ api, coachApi, confirm, initialRoute, backButton }: Props) => {
+export const App = ({ api, coachApi, confirm, initialRoute, backButton, share }: Props) => {
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,6 +32,8 @@ export const App = ({ api, coachApi, confirm, initialRoute, backButton }: Props)
     )
   if (!me) return <Spinner />
   if (me.role === 'COACH')
-    return <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} />
+    return (
+      <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} share={share} />
+    )
   return <ClientApp api={api} confirm={confirm} backButton={backButton} />
 }

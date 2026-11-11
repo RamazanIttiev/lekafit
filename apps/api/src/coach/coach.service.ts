@@ -1,5 +1,6 @@
 import { planSchema } from '@lekafit/shared'
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { TELEGRAM, type TelegramGateway } from '../bot/telegram.gateway'
 import { ReportsRepository, type SubmittedSummary } from '../reports/reports.repository'
 import { type User, UsersRepository } from '../users/users.repository'
 
@@ -33,7 +34,12 @@ export class CoachService {
   constructor(
     @Inject(UsersRepository) private readonly users: UsersRepository,
     @Inject(ReportsRepository) private readonly reports: ReportsRepository,
+    @Inject(TELEGRAM) private readonly telegram: TelegramGateway,
   ) {}
+
+  async invite(): Promise<{ url: string }> {
+    return { url: `https://t.me/${await this.telegram.botUsername()}` }
+  }
 
   async clients(): Promise<ClientSummary[]> {
     const [clients, reports] = await Promise.all([

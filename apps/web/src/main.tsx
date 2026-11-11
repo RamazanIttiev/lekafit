@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { createApi, createCoachApi, httpClient } from './api'
-import { applyTelegramTheme, confirmWithTelegram, webApp } from './telegram'
+import { applyTelegramTheme, confirmWithTelegram, shareWithTelegram, webApp } from './telegram'
 import 'tailwindcss/index.css'
 import '@heroui/react/styles'
 
@@ -26,6 +26,7 @@ if (root && tg?.initData) {
         confirm={confirmWithTelegram}
         initialRoute={window.location.hash}
         backButton={tg.BackButton}
+        share={shareWithTelegram}
       />
     </StrictMode>,
   )
