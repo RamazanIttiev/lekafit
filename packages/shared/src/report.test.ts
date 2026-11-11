@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   completionPercent,
   formatDelta,
-  missingRequiredFields,
+  missingFields,
   parseNumber,
   planSchema,
   reportDataSchema,
+  WELLBEING,
   weekRange,
 } from './index'
 
@@ -83,10 +84,22 @@ describe('weekRange', () => {
   })
 })
 
-const filledData = () =>
-  reportDataSchema.parse({
-    fact: { cal: '1850', protein: '120', fat: '60', carb: '180', steps: '9000', training: '3' },
+const filledReport = (overrides: Record<string, Record<string, string>> = {}) => {
+  const section = (keys: readonly string[], value: string, patch: Record<string, string> = {}) =>
+    Object.fromEntries(keys.map((k) => [k, patch[k] ?? value]))
+  return reportDataSchema.parse({
+    fact: section(['cal', 'protein', 'fat', 'carb', 'steps', 'training'], '1', overrides.fact),
+    prev: section(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'], '1', overrides.prev),
+    now: section(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'], '1', overrides.now),
+    wellbeing: {
+      ...Object.fromEntries(
+        WELLBEING.map((w) => [w.key, overrides.wellbeing?.[w.key] ?? w.options[0]]),
+      ),
+      note: 'ok',
+    },
+    feedback: section(['wins', 'issues', 'changes', 'nextWeek'], 'ok', overrides.feedback),
   })
+}
 
 describe('reportDataSchema', () => {
   it('fills every field with empty strings when given nothing', () => {
@@ -106,14 +119,31 @@ describe('reportDataSchema', () => {
   })
 })
 
-describe('missingRequiredFields', () => {
-  it('lists metrics without a fact value in Russian', () => {
-    const data = reportDataSchema.parse({ fact: { cal: '1850' } })
-    expect(missingRequiredFields(data)).toEqual(['белки', 'жиры', 'углеводы', 'шаги', 'тренировки'])
+describe('missingFields', () => {
+  it('lists every field of an empty report', () => {
+    expect(missingFields(reportDataSchema.parse({}))).toHaveLength(6 + 6 + 6 + 6 + 4)
   })
 
-  it('returns nothing when all facts are filled', () => {
-    expect(missingRequiredFields(filledData())).toEqual([])
+  it('names a field by its section and key', () => {
+    const data = filledReport({ fact: { cal: '' }, wellbeing: { sleep: '' } })
+    expect(missingFields(data)).toEqual(['fact.cal', 'wellbeing.sleep'])
+  })
+
+  it('treats blank text and non-numeric measurements as missing', () => {
+    const data = filledReport({ feedback: { wins: '   ' }, now: { weight: 'abc' } })
+    expect(missingFields(data)).toEqual(['now.weight', 'feedback.wins'])
+  })
+
+  it('does not require the wellbeing comment', () => {
+    const data = reportDataSchema.parse({
+      ...filledReport(),
+      wellbeing: { ...filledReport().wellbeing, note: '' },
+    })
+    expect(missingFields(data)).toEqual([])
+  })
+
+  it('returns nothing when every field is filled', () => {
+    expect(missingFields(filledReport())).toEqual([])
   })
 })
 

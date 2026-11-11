@@ -1,5 +1,5 @@
 import { Alert, Button, Chip, Spinner, Tabs } from '@heroui/react'
-import { missingRequiredFields } from '@lekafit/shared'
+import { missingFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, Report, ReportData } from '../api'
 import { period } from '../format'
@@ -18,11 +18,8 @@ const SAVE_LABEL: Record<SaveStatus, string> = {
   error: 'Не сохранилось — проверьте интернет',
 }
 
-const confirmMessage = (data: ReportData) => {
-  const missing = missingRequiredFields(data)
-  const base = 'Отправить отчёт тренеру? После отправки изменить его будет нельзя.'
-  return missing.length ? `${base}\n\nНе заполнено: ${missing.join(', ')}.` : base
-}
+const CONFIRM_MESSAGE = 'Отправить отчёт тренеру? После отправки изменить его будет нельзя.'
+const ERROR_VISIBLE_MS = 3000
 
 const Notice = ({ status, children }: { status?: 'success' | 'danger'; children: string }) => (
   <Alert status={status}>
@@ -37,6 +34,13 @@ const CurrentReport = ({ api, confirm }: Props) => {
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const [invalid, setInvalid] = useState<ReadonlySet<string>>(new Set())
+
+  useEffect(() => {
+    if (invalid.size === 0) return
+    const timer = setTimeout(() => setInvalid(new Set()), ERROR_VISIBLE_MS)
+    return () => clearTimeout(timer)
+  }, [invalid])
 
   useEffect(() => {
     api.currentReport().then(setReport, (e: Error) => setError(e.message))
@@ -61,7 +65,9 @@ const CurrentReport = ({ api, confirm }: Props) => {
   }
 
   const submit = async () => {
-    if (!(await confirm(confirmMessage(report.data)))) return
+    const missing = missingFields(report.data)
+    if (missing.length) return setInvalid(new Set(missing))
+    if (!(await confirm(CONFIRM_MESSAGE))) return
     setSending(true)
     try {
       await autosave.flush()
@@ -85,7 +91,25 @@ const CurrentReport = ({ api, confirm }: Props) => {
         )}
       </div>
       {report.status === 'SUBMITTED' && <Notice status="success">Отчёт отправлен тренеру</Notice>}
-      <ReportForm data={report.data} plan={report.plan} readOnly={readOnly} onChange={onChange} />
+      {invalid.size > 0 && (
+        <div className="fixed inset-x-3 top-3 z-50 mx-auto max-w-2xl">
+          <Alert status="danger">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Заполните все поля, чтобы отправить отчёт</Alert.Title>
+            </Alert.Content>
+          </Alert>
+        </div>
+      )}
+      {report.status !== 'SUBMITTED' && (
+        <ReportForm
+          data={report.data}
+          plan={report.plan}
+          readOnly={readOnly}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      )}
       {report.status === 'DRAFT' && (
         <Button fullWidth size="lg" isDisabled={sending} onPress={submit}>
           Отправить тренеру

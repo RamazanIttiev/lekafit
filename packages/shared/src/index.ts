@@ -183,5 +183,13 @@ export const weekRange = (today: Date): { start: string; end: string } => {
   return { start: isoDate(start), end: isoDate(end) }
 }
 
-export const missingRequiredFields = (data: ReportData): string[] =>
-  METRICS.filter((m) => parseNumber(data.fact[m.key]) === null).map((m) => m.label.toLowerCase())
+const hasNumber = (value: string) => parseNumber(value) !== null
+const hasText = (value: string) => value.trim() !== ''
+
+export const missingFields = (data: ReportData): string[] => [
+  ...METRICS.filter((m) => !hasNumber(data.fact[m.key])).map((m) => `fact.${m.key}`),
+  ...MEASURES.filter((m) => !hasNumber(data.prev[m.key])).map((m) => `prev.${m.key}`),
+  ...MEASURES.filter((m) => !hasNumber(data.now[m.key])).map((m) => `now.${m.key}`),
+  ...WELLBEING.filter((w) => !hasText(data.wellbeing[w.key])).map((w) => `wellbeing.${w.key}`),
+  ...FEEDBACK.filter((f) => !hasText(data.feedback[f.key])).map((f) => `feedback.${f.key}`),
+]

@@ -124,6 +124,7 @@ describe('report page', () => {
     )
     await expect.element(screen.getByRole('heading', { name: 'Анна Иванова' })).toBeVisible()
     await expect.element(screen.getByLabelText('Факт Калории')).toBeDisabled()
+    await screen.getByRole('tab', { name: 'Обратная связь' }).click()
     await expect
       .element(screen.getByLabelText('Что получилось хорошо?'))
       .toHaveValue('Все тренировки')

@@ -1,4 +1,4 @@
-import { type Plan, type ReportData, reportDataSchema } from '@lekafit/shared'
+import { type Plan, type ReportData, reportDataSchema, WELLBEING } from '@lekafit/shared'
 import type { Api, Report } from '../api'
 
 export const aPlan = (overrides: Partial<Plan> = {}): Plan => ({
@@ -23,6 +23,21 @@ export const aReport = (overrides: Partial<Report> = {}): Report => ({
 })
 
 export const dataWith = (input: object): ReportData => reportDataSchema.parse(input)
+
+export const filledData = (): ReportData => {
+  const numbers = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, '1']))
+  const measures = numbers(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'])
+  return reportDataSchema.parse({
+    fact: numbers(['cal', 'protein', 'fat', 'carb', 'steps', 'training']),
+    prev: measures,
+    now: measures,
+    wellbeing: {
+      ...Object.fromEntries(WELLBEING.map((w) => [w.key, w.options[0]])),
+      note: 'ок',
+    },
+    feedback: { wins: 'ок', issues: 'ок', changes: 'ок', nextWeek: 'ок' },
+  })
+}
 
 export const fakeApi = (options: { current?: Report; history?: Report[] } = {}) => {
   const saves: ReportData[] = []

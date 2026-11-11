@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { aPlan, aReport, dataWith, fakeApi } from '../test/fakeApi'
+import { aPlan, aReport, dataWith, fakeApi, filledData } from '../test/fakeApi'
 import { ClientApp } from './ClientApp'
 
 const renderClient = async (
@@ -40,10 +40,20 @@ describe('weekly report form', () => {
     await expect.element(screen.getByLabelText('Средние шаги')).toHaveTextContent('125%')
   })
 
+  it('shows one report section at a time, switched by icon tabs', async () => {
+    const { screen } = await renderClient()
+    await expect.element(screen.getByLabelText('Факт Калории')).toBeVisible()
+    await screen.getByRole('tab', { name: 'Обратная связь' }).click()
+    await expect.element(screen.getByLabelText('Что получилось хорошо?')).toBeVisible()
+    await expect.element(screen.getByLabelText('Факт Калории')).not.toBeInTheDocument()
+    await expect.element(screen.getByRole('tab', { name: 'Замеры' })).toHaveTextContent('')
+  })
+
   it('shows measurement changes against last week', async () => {
     const { screen } = await renderClient({
       current: aReport({ data: dataWith({ prev: { weight: '72,4' } }) }),
     })
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
     await expect.element(screen.getByLabelText('Было Вес')).toHaveValue('72,4')
     await screen.getByLabelText('Стало Вес').fill('71,9')
     await expect.element(screen.getByLabelText('Разница Вес')).toHaveTextContent('-0,5')
@@ -52,8 +62,10 @@ describe('weekly report form', () => {
   it('saves answers automatically', async () => {
     const { screen, saves } = await renderClient()
     await screen.getByLabelText('Факт Белки').fill('115')
+    await screen.getByRole('tab', { name: 'Самочувствие' }).click()
     await screen.getByRole('button', { name: /Энергия/ }).click()
     await screen.getByRole('option', { name: '4 — хорошая' }).click()
+    await screen.getByRole('tab', { name: 'Обратная связь' }).click()
     await screen.getByLabelText('Что получилось хорошо?').fill('Все тренировки')
     await expect.element(screen.getByText('Сохранено')).toBeVisible()
     await expect
@@ -65,17 +77,19 @@ describe('weekly report form', () => {
       })
   })
 
-  it('warns about missing values before sending, and sends after confirmation', async () => {
-    const { screen, confirm } = await renderClient()
-    await screen.getByLabelText('Факт Калории').fill('1850')
+  it('sends a complete report after confirmation', async () => {
+    const { screen, confirm } = await renderClient({
+      current: aReport({ data: filledData() }),
+    })
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Не заполнено: белки, жиры'))
-    await expect.element(screen.getByLabelText('Факт Калории')).toBeDisabled()
+    expect(confirm).toHaveBeenCalledOnce()
   })
 
   it('sends the latest answers even if typed just before tapping send', async () => {
-    const { screen, saves } = await renderClient()
+    const { screen, saves } = await renderClient({
+      current: aReport({ data: filledData() }),
+    })
     await screen.getByLabelText('Факт Калории').fill('1850')
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
@@ -84,7 +98,7 @@ describe('weekly report form', () => {
 
   it('does not send when the client cancels', async () => {
     const { screen, state } = await renderClient(
-      {},
+      { current: aReport({ data: filledData() }) },
       vi.fn(async () => false),
     )
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
@@ -92,13 +106,55 @@ describe('weekly report form', () => {
     await expect.element(screen.getByRole('button', { name: 'Отправить тренеру' })).toBeVisible()
   })
 
+  it('refuses to send while a field is empty, alerting and outlining the empty fields', async () => {
+    const { screen, confirm, state } = await renderClient({
+      current: aReport({ data: filledData() }),
+    })
+    await screen.getByLabelText('Факт Калории').fill('')
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect
+      .element(screen.getByText('Заполните все поля, чтобы отправить отчёт'))
+      .toBeVisible()
+    await expect.element(screen.getByLabelText('Факт Калории')).toBeInvalid()
+    await expect.element(screen.getByLabelText('Факт Белки')).toBeValid()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(state.current.status).toBe('DRAFT')
+  })
+
+  it('outlines empty fields on every tab, including dropdowns', async () => {
+    const data = filledData()
+    const { screen } = await renderClient({
+      current: aReport({ data: { ...data, wellbeing: { ...data.wellbeing, sleep: '' } } }),
+    })
+    await screen.getByRole('tab', { name: 'Самочувствие' }).click()
+    await screen.getByRole('tab', { name: 'Обратная связь' }).click()
+    await screen.getByLabelText('Что было сложно?').fill('')
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect.element(screen.getByLabelText('Что было сложно?')).toBeInvalid()
+    await screen.getByRole('tab', { name: 'Самочувствие' }).click()
+    await expect.element(screen.getByLabelText('Комментарии по самочувствию')).toBeValid()
+    const sleepSelect = screen.getByRole('button', { name: /Сон/ }).element().parentElement
+    expect(sleepSelect).toHaveAttribute('data-invalid', 'true')
+  })
+
+  it('clears the alert and the outlines after three seconds', async () => {
+    const { screen } = await renderClient({ current: aReport({ data: filledData() }) })
+    await screen.getByLabelText('Факт Калории').fill('')
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect
+      .element(screen.getByText('Заполните все поля, чтобы отправить отчёт'))
+      .toBeVisible()
+    await expect
+      .element(screen.getByText('Заполните все поля, чтобы отправить отчёт'), { timeout: 4000 })
+      .not.toBeInTheDocument()
+    await expect.element(screen.getByLabelText('Факт Калории')).toBeValid()
+  })
+
   it('shows an already sent report read-only', async () => {
     const { screen } = await renderClient({
       current: aReport({ status: 'SUBMITTED', data: dataWith({ fact: { cal: '1850' } }) }),
     })
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
-    await expect.element(screen.getByLabelText('Факт Калории')).toHaveValue('1850')
-    await expect.element(screen.getByLabelText('Факт Калории')).toBeDisabled()
   })
 })
 
