@@ -1,7 +1,8 @@
-import { Alert, Button, Chip, Spinner, Tabs } from '@heroui/react'
+import { Alert, Button, Chip, Tabs } from '@heroui/react'
 import { missingFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, Report, ReportData } from '../api'
+import { CenteredSpinner } from '../CenteredSpinner'
 import { Dynamics } from '../Dynamics'
 import { period } from '../format'
 import { ReportForm } from '../report/ReportForm'
@@ -54,7 +55,7 @@ const CurrentReport = ({ api, confirm }: Props) => {
   const autosave = useAutosave(save)
 
   if (error) return <Notice status="danger">{error}</Notice>
-  if (!report) return <Spinner />
+  if (!report) return <CenteredSpinner />
 
   const readOnly = report.status === 'SUBMITTED' || sending
 
@@ -123,7 +124,7 @@ const Progress = ({ api }: { api: Api }) => {
   useEffect(() => {
     api.listReports().then(setReports)
   }, [api])
-  if (!reports) return <Spinner />
+  if (!reports) return <CenteredSpinner />
   if (!reports.length) return <Notice>Отчётов пока нет</Notice>
   return <Dynamics reports={reports} />
 }

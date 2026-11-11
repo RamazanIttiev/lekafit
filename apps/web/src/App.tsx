@@ -1,6 +1,7 @@
-import { Alert, Spinner } from '@heroui/react'
+import { Alert } from '@heroui/react'
 import { useEffect, useState } from 'react'
 import type { Api, CoachApi, Me } from './api'
+import { CenteredSpinner } from './CenteredSpinner'
 import { ClientApp } from './client/ClientApp'
 import { CoachApp } from './coach/CoachApp'
 import type { BackButton } from './telegram'
@@ -30,7 +31,7 @@ export const App = ({ api, coachApi, confirm, initialRoute, backButton, share }:
         </Alert.Content>
       </Alert>
     )
-  if (!me) return <Spinner />
+  if (!me) return <CenteredSpinner />
   if (me.role === 'COACH')
     return (
       <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} share={share} />
