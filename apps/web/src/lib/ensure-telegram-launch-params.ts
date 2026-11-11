@@ -1,4 +1,4 @@
-import { mockTelegramEnv, retrieveLaunchParams } from '@tma.js/sdk-react';
+import { mockTelegramEnv, retrieveLaunchParams } from '@tma.js/sdk-react'
 
 /**
  * Outside Telegram (plain browser on localhost / Cloudflare tunnel), launch params are missing
@@ -10,15 +10,15 @@ import { mockTelegramEnv, retrieveLaunchParams } from '@tma.js/sdk-react';
  */
 export function ensureTelegramLaunchParams() {
   try {
-    return retrieveLaunchParams();
+    return retrieveLaunchParams()
   } catch {
     const allowMock =
-      import.meta.env.DEV || import.meta.env.PUBLIC_MOCK_TMA_OUTSIDE_TELEGRAM === 'true';
+      import.meta.env.DEV || import.meta.env.PUBLIC_MOCK_TMA_OUTSIDE_TELEGRAM === 'true'
 
     if (!allowMock) {
       throw new Error(
         'Open this Mini App from Telegram. Launch parameters are only injected inside the Telegram client.',
-      );
+      )
     }
 
     const tgWebAppData = new URLSearchParams({
@@ -30,7 +30,7 @@ export function ensureTelegramLaunchParams() {
       }),
       auth_date: String(Math.floor(Date.now() / 1000)),
       hash: '0000000000000000000000000000000000000000000000000000000000000000',
-    }).toString();
+    }).toString()
 
     mockTelegramEnv({
       launchParams: {
@@ -39,8 +39,8 @@ export function ensureTelegramLaunchParams() {
         tgWebAppThemeParams: {},
         tgWebAppData,
       },
-    });
+    })
 
-    return retrieveLaunchParams();
+    return retrieveLaunchParams()
   }
 }

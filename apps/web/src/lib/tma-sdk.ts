@@ -9,67 +9,60 @@ import {
   swipeBehavior,
   themeParams,
   viewport,
-} from '@tma.js/sdk-react';
+} from '@tma.js/sdk-react'
 
-import { bindTelegramDocumentColorScheme } from './sync-telegram-document-theme';
+import { bindTelegramDocumentColorScheme } from './sync-telegram-document-theme'
 
 /**
  * Mount/bind must run once: React Strict Mode double-mounts components, and
  * `themeParams.bindCssVars()` / `viewport.bindCssVars()` throw if called again.
  */
-let tmaShellInitialized = false;
+let tmaShellInitialized = false
 
-export const initTma = async (options: {
-  debug: boolean;
-  eruda: boolean;
-  mockForMacOS: boolean;
-}) => {
-  const launchParams = retrieveLaunchParams();
+export const initTma = async (options: { debug: boolean }) => {
+  const launchParams = retrieveLaunchParams()
   if (tmaShellInitialized) {
-    return { launchParams };
+    return { launchParams }
   }
 
-  setDebug(options.debug);
-  initSDK();
+  setDebug(options.debug)
+  initSDK()
 
-  // Add Eruda if needed.
-  options.eruda &&
-    void import('eruda').then(({ default: eruda }) => {
-      eruda.init();
-      eruda.position({ x: window.innerWidth - 50, y: 0 });
-    });
+  backButton.mount.ifAvailable()
+  initData.restore()
 
-  backButton.mount.ifAvailable();
-  initData.restore();
-
-  swipeBehavior.mount();
-  closingBehavior.mount();
-  closingBehavior.enableConfirmation();
+  swipeBehavior.mount()
+  closingBehavior.mount()
+  closingBehavior.enableConfirmation()
 
   if (swipeBehavior.isSupported()) {
-    swipeBehavior.disableVertical();
+    swipeBehavior.disableVertical()
   }
 
   if (miniApp.mount.isAvailable()) {
-    themeParams.mount();
-    miniApp.mount();
-    themeParams.bindCssVars();
-    bindTelegramDocumentColorScheme();
+    themeParams.mount()
+    miniApp.mount()
+    themeParams.bindCssVars()
+    miniApp.setBgColor.ifAvailable('secondary_bg_color')
+    miniApp.setHeaderColor.ifAvailable('secondary_bg_color')
+    miniApp.setBottomBarColor.ifAvailable('secondary_bg_color')
+    miniApp.ready.ifAvailable()
+    bindTelegramDocumentColorScheme()
   } else {
-    bindTelegramDocumentColorScheme();
+    bindTelegramDocumentColorScheme()
   }
 
   if (viewport.mount.isAvailable()) {
     void viewport.mount().then(() => {
-      viewport.expand();
-      if (launchParams.tgWebAppPlatform === 'ios' || launchParams.tgWebAppPlatform === 'android') {
-        viewport.requestFullscreen();
-      }
-      viewport.bindCssVars();
-    });
+      viewport.expand()
+      // if (launchParams.tgWebAppPlatform === 'ios' || launchParams.tgWebAppPlatform === 'android') {
+      //   viewport.()
+      // }
+      viewport.bindCssVars()
+    })
   }
 
-  tmaShellInitialized = true;
+  tmaShellInitialized = true
 
-  return { launchParams };
-};
+  return { launchParams }
+}

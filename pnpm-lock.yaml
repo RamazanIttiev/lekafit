@@ -86,7 +86,7 @@ importers:
         version: 5.9.3
       unplugin-swc:
         specifier: ^2.0.0
-        version: 2.0.0(@swc/core@1.16.22(@swc/helpers@0.5.24))(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.0.0(@swc/core@1.16.22(@swc/helpers@0.5.24))(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1)
@@ -99,6 +99,9 @@ importers:
       '@lekafit/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tma.js/sdk-react':
+        specifier: ^3.0.23
+        version: 3.0.23(@types/react@19.3.0)(react@19.3.1)(typescript@5.9.3)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -1460,8 +1463,26 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
+  '@tma.js/bridge@2.3.3':
+    resolution: {integrity: sha512-R2o/bJY/mc8Kg4F3sF515DawCEUOVpHaOnW/zGq95Tell/ptb/7XPzCa7Ko5iq8KrlmHjpiK/0xnnF423lJ4Vw==}
+
   '@tma.js/init-data-node@2.0.8':
     resolution: {integrity: sha512-OK4uLAXOg/uMnmdS0ngcPVJCh3FJLQfk/BpBpxyk5mYBV7cHSidXzyC7AtygfoNgAoadlbDLh1aQANVRUbgjQg==}
+
+  '@tma.js/sdk-react@3.0.23':
+    resolution: {integrity: sha512-19JYJf15loKjRNALUlmwwscfSI76Vqtj9SciymHFlp6B+8qDnBniz4ozD/uXNhZeGvBHR7FJp21P3vO58mNFiw==}
+    peerDependencies:
+      '@types/react': ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@tma.js/sdk@3.3.0':
+    resolution: {integrity: sha512-Hs9cx2lgUPlHL/RO7uKBF00SrOnFV9BLpJ1/r/fW2b/ITqeo4dh4iTmJ/U6h0cSFk5682ZGUSoPVdGJVENsIuA==}
+
+  '@tma.js/signals@1.0.1':
+    resolution: {integrity: sha512-i2HUuwGqL4BmM5KAklAUhMhlEgUOF+F4nMHHS/zxrmD0upHE/0CiXCEdQxVeeOGN6e2RrKlonA40sDtR6OUDCw==}
 
   '@tma.js/toolkit@1.0.4':
     resolution: {integrity: sha512-6CDlkgc+43WD2jy6jog3B50yt9t+/wRwrN25zOa4iSw4IzfqoFjaQcJzTupBYaRxz19C3Rrir7p0/qStS/Z8vw==}
@@ -2276,6 +2297,9 @@ packages:
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
     engines: {node: 18 || 20 || >=22}
+
+  mitt@3.0.1:
+    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
@@ -4296,6 +4320,20 @@ snapshots:
       tailwindcss: 4.3.5
       vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
+  '@tma.js/bridge@2.3.3(typescript@5.9.3)':
+    dependencies:
+      '@tma.js/signals': 1.0.1
+      '@tma.js/toolkit': 1.0.4
+      '@tma.js/transformers': 1.2.0(typescript@5.9.3)
+      '@tma.js/types': 1.0.2
+      better-promises: 1.0.0
+      error-kid: 2.1.1
+      fp-ts: 2.16.11
+      mitt: 3.0.1
+      valibot: 1.5.0(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+
   '@tma.js/init-data-node@2.0.8(typescript@5.9.3)':
     dependencies:
       '@tma.js/toolkit': 1.0.4
@@ -4306,6 +4344,31 @@ snapshots:
       fp-ts: 2.16.11
     transitivePeerDependencies:
       - typescript
+
+  '@tma.js/sdk-react@3.0.23(@types/react@19.3.0)(react@19.3.1)(typescript@5.9.3)':
+    dependencies:
+      '@tma.js/sdk': 3.3.0(typescript@5.9.3)
+      react: 19.3.1
+    optionalDependencies:
+      '@types/react': 19.3.0
+    transitivePeerDependencies:
+      - typescript
+
+  '@tma.js/sdk@3.3.0(typescript@5.9.3)':
+    dependencies:
+      '@tma.js/bridge': 2.3.3(typescript@5.9.3)
+      '@tma.js/signals': 1.0.1
+      '@tma.js/toolkit': 1.0.4
+      '@tma.js/transformers': 1.2.0(typescript@5.9.3)
+      '@tma.js/types': 1.0.2
+      better-promises: 1.0.0
+      error-kid: 2.1.1
+      fp-ts: 2.16.11
+      valibot: 1.5.0(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+
+  '@tma.js/signals@1.0.1': {}
 
   '@tma.js/toolkit@1.0.4':
     dependencies:
@@ -5128,6 +5191,8 @@ snapshots:
     dependencies:
       brace-expansion: 5.0.12
 
+  mitt@3.0.1: {}
+
   mrmime@2.0.1: {}
 
   ms@2.1.3: {}
@@ -5680,12 +5745,12 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-swc@2.0.0(@swc/core@1.16.22(@swc/helpers@0.5.24))(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1)):
+  unplugin-swc@2.0.0(@swc/core@1.16.22(@swc/helpers@0.5.24))(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@rollup/pluginutils': 5.5.1(rollup@4.68.2)
       '@swc/core': 1.16.22(@swc/helpers@0.5.24)
       load-tsconfig: 0.2.5
-      unplugin: 3.7.0(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1))
+      unplugin: 3.7.0(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rsbuild/core'
@@ -5698,7 +5763,7 @@ snapshots:
       - vite
       - webpack
 
-  unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1)):
+  unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.19)(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       '@rolldown/pluginutils': 1.1.0
@@ -5708,7 +5773,7 @@ snapshots:
       esbuild: 0.28.2
       rolldown: 1.2.19
       rollup: 4.68.2
-      vite: 7.3.8(@types/node@26.6.6)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
 
   update-browserslist-db@1.3.4(browserslist@4.29.5):
     dependencies:
