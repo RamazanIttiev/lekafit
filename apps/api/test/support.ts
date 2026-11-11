@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import { sign } from '@tma.js/init-data-node'
 import postgres from 'postgres'
 import request from 'supertest'
-import { type AppConfig, createApp } from '../src/app'
+import { type AppConfig, type AppOverrides, createApp } from '../src/app'
 
 export const BOT_TOKEN = '123456:TEST-TOKEN'
 export const COACH_ID = 1000
@@ -40,8 +40,14 @@ export const resetDatabase = async () => {
   await sql.end()
 }
 
-export const startApp = async (overrides: Partial<AppConfig> = {}) => {
-  const app = await createApp(testConfig(overrides))
+export const startApp = async (
+  overrides: Partial<AppConfig> = {},
+  dependencies: AppOverrides = {},
+) => {
+  const app = await createApp(testConfig(overrides), {
+    telegram: { send: async () => {} },
+    ...dependencies,
+  })
   await app.init()
   return app
 }
