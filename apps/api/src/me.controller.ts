@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common'
 import { CurrentUser, TelegramAuthGuard } from './auth/telegram-auth.guard'
-import type { User } from './auth/users'
+import type { User } from './users/users.repository'
 
 @Controller('me')
 @UseGuards(TelegramAuthGuard)

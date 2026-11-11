@@ -10,7 +10,8 @@ import {
 import { isValid, parse } from '@tma.js/init-data-node'
 import type { Request } from 'express'
 import { type AppConfig, CONFIG } from '../config'
-import { type User, Users } from './users'
+import type { User } from '../users/users.repository'
+import { UsersService } from '../users/users.service'
 
 type AuthedRequest = Request & { user?: User }
 
@@ -20,7 +21,7 @@ const ONE_DAY_SECONDS = 24 * 60 * 60
 export class TelegramAuthGuard implements CanActivate {
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
-    @Inject(Users) private readonly users: Users,
+    @Inject(UsersService) private readonly users: UsersService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -32,7 +33,7 @@ export class TelegramAuthGuard implements CanActivate {
     }
     const tgUser = parse(initData).user
     if (!tgUser) throw new UnauthorizedException()
-    req.user = await this.users.upsert({
+    req.user = await this.users.signIn({
       id: tgUser.id,
       firstName: tgUser.first_name,
       lastName: tgUser.last_name,

@@ -1,7 +1,7 @@
 import { reportDataSchema } from '@lekafit/shared'
 import { describe, expect, it } from 'vitest'
-import type { User } from '../auth/users'
 import type { Report } from '../reports/reports.repository'
+import type { User } from '../users/users.repository'
 import { reportSummary } from './report-summary'
 
 const aUser = (overrides: Partial<User> = {}): User => ({

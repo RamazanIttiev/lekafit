@@ -1,6 +1,6 @@
 import { completionPercent, formatDelta, MEASURES, METRICS, parseNumber } from '@lekafit/shared'
-import type { User } from '../auth/users'
 import type { Report } from '../reports/reports.repository'
+import type { User } from '../users/users.repository'
 
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
 const plain = (text: string) => text.replace(/[  ]/g, ' ')

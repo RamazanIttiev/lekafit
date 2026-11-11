@@ -1,8 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import type { User } from '../auth/users'
 import { type AppConfig, CONFIG } from '../config'
-import { SQL, type Sql } from '../db'
 import type { Report } from '../reports/reports.repository'
+import { UsersRepository } from '../users/users.repository'
 import { reportSummary } from './report-summary'
 import { TELEGRAM, type TelegramGateway } from './telegram.gateway'
 
@@ -12,15 +11,13 @@ export class CoachNotifier {
 
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
-    @Inject(SQL) private readonly sql: Sql,
+    @Inject(UsersRepository) private readonly users: UsersRepository,
     @Inject(TELEGRAM) private readonly telegram: TelegramGateway,
   ) {}
 
   async reportSubmitted(report: Report): Promise<void> {
     try {
-      const [client] = await this.sql<User[]>`
-        select id, telegram_id::float8 as telegram_id, first_name, last_name, username, role
-        from users where id = ${report.userId}`
+      const client = await this.users.findById(report.userId)
       if (!client) return
       await this.telegram.send({
         chatId: this.config.coachTelegramId,
