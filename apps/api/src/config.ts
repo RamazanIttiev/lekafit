@@ -17,6 +17,7 @@ const envSchema = z.object({
   COACH_TELEGRAM_ID: z.coerce.number().int().positive(),
   WEBAPP_URL: z.string().url(),
   PORT: z.coerce.number().int().default(3000),
+  START_BOT: z.enum(['true', 'false']).default('true'),
 })
 
 export const configFromEnv = (env: NodeJS.ProcessEnv) => {
@@ -28,7 +29,7 @@ export const configFromEnv = (env: NodeJS.ProcessEnv) => {
       botToken: parsed.BOT_TOKEN,
       coachTelegramId: parsed.COACH_TELEGRAM_ID,
       webAppUrl: parsed.WEBAPP_URL,
-      startBot: true,
+      startBot: parsed.START_BOT === 'true',
       now: () => new Date(),
     } satisfies AppConfig,
   }

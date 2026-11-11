@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lekafit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: lekafit
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "lekafit"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://lekafit:${POSTGRES_PASSWORD}@db:5432/lekafit
+      BOT_TOKEN: ${BOT_TOKEN:?set BOT_TOKEN in .env}
+      COACH_TELEGRAM_ID: ${COACH_TELEGRAM_ID:?set COACH_TELEGRAM_ID in .env}
+      WEBAPP_URL: https://${DOMAIN}
+      START_BOT: ${START_BOT:-true}
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports: ["80:80", "443:443"]
+    volumes: [caddy_data:/data, caddy_config:/config]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
