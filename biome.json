@@ -7,5 +7,5 @@
     "parser": { "unsafeParameterDecoratorsEnabled": true },
     "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" }
   },
-  "linter": { "rules": { "recommended": true, "suspicious": { "noExplicitAny": "error" } } }
+  "linter": { "rules": { "preset": "recommended", "suspicious": { "noExplicitAny": "error" } } }
 }

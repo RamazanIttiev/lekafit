@@ -1,4 +1,4 @@
-import { sign } from '@telegram-apps/init-data-node'
+import { sign } from '@tma.js/init-data-node'
 import request from 'supertest'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { aClient, as, BOT_TOKEN, initDataFor, resetDatabase, startApp, theCoach } from './support'

@@ -28,7 +28,7 @@
     "@nestjs/common": "^12.4.2",
     "@nestjs/core": "^12.4.2",
     "@nestjs/platform-express": "^12.4.2",
-    "@telegram-apps/init-data-node": "^2.0.10",
+    "@tma.js/init-data-node": "^2.0.8",
     "grammy": "^1.46.0",
     "postgres": "^4.1.1",
     "reflect-metadata": "^0.2.2",

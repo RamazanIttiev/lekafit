@@ -7,7 +7,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
-import { isValid, parse } from '@telegram-apps/init-data-node'
+import { isValid, parse } from '@tma.js/init-data-node'
 import type { Request } from 'express'
 import { type AppConfig, CONFIG } from '../config'
 import { type User, Users } from './users'

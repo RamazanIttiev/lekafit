@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common'
-import { sign } from '@telegram-apps/init-data-node'
+import { sign } from '@tma.js/init-data-node'
 import postgres from 'postgres'
 import request from 'supertest'
 import { type AppConfig, createApp } from '../src/app'
