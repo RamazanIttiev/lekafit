@@ -142,3 +142,82 @@ describe('monthly targets from the coach', () => {
     await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
   })
 })
+
+const aPhoto = (name = 'photo.png'): Promise<File> => {
+  const canvas = document.createElement('canvas')
+  canvas.width = 40
+  canvas.height = 60
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(new File([b], name, { type: 'image/png' })) : reject(new Error('blob'))),
+      'image/png',
+    ),
+  )
+}
+
+describe('monthly photos', () => {
+  const openPhotos = async (screen: Awaited<ReturnType<typeof renderMonthly>>['screen']) => {
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+  }
+
+  it('uploads a resized JPEG for the chosen angle and shows it', async () => {
+    const { screen, uploads } = await renderMonthly()
+    await openPhotos(screen)
+    await screen.getByLabelText('Выбрать фото: Фас').upload(await aPhoto())
+    await expect
+      .poll(() => uploads.map((u) => [u.angle, u.type]))
+      .toEqual([['front', 'image/jpeg']])
+    await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
+    await expect.element(screen.getByRole('button', { name: 'Удалить фото: Фас' })).toBeVisible()
+  })
+
+  it('removes a photo', async () => {
+    const { screen, state } = await renderMonthly({
+      monthly: aMonthlyReport({ photos: { front: true, side: false, back: false } }),
+    })
+    await openPhotos(screen)
+    await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
+    await screen.getByRole('button', { name: 'Удалить фото: Фас' }).click()
+    await expect
+      .element(screen.getByRole('img', { name: 'Фас — этот месяц' }))
+      .not.toBeInTheDocument()
+    expect(state.monthly.photos.front).toBe(false)
+  })
+
+  it('shows last month photos next to the slots', async () => {
+    const { screen } = await renderMonthly({
+      monthly: aMonthlyReport({ prevPhotosReportId: 1 }),
+    })
+    await openPhotos(screen)
+    await expect.element(screen.getByRole('img', { name: 'Спина — прошлый месяц' })).toBeVisible()
+  })
+
+  it('says there is nothing to compare with in the first month', async () => {
+    const { screen } = await renderMonthly()
+    await openPhotos(screen)
+    await expect.element(screen.getByText('В прошлом месяце фото нет').first()).toBeVisible()
+  })
+
+  it('outlines the missing photos when the client tries to send', async () => {
+    const { screen } = await renderMonthly({
+      monthly: aMonthlyReport({
+        data: filledMonthlyData(),
+        photos: { front: true, side: false, back: true },
+      }),
+    })
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await openPhotos(screen)
+    await expect.element(screen.getByLabelText('Выбрать фото: Профиль')).toBeInvalid()
+    await expect.element(screen.getByLabelText('Выбрать фото: Фас')).toBeValid()
+  })
+
+  it('tells the client when a file cannot be used as a photo', async () => {
+    const { screen, uploads } = await renderMonthly()
+    await openPhotos(screen)
+    await screen
+      .getByLabelText('Выбрать фото: Профиль')
+      .upload(new File(['oops'], 'broken.jpg', { type: 'image/jpeg' }))
+    await expect.element(screen.getByText('Не удалось открыть фото')).toBeVisible()
+    expect(uploads).toEqual([])
+  })
+})

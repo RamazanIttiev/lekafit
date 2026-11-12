@@ -1,4 +1,9 @@
-import { monthlyReportDataSchema, planSchema, reportDataSchema } from '@lekafit/shared'
+import {
+  monthlyReportDataSchema,
+  type PhotoAngle,
+  planSchema,
+  reportDataSchema,
+} from '@lekafit/shared'
 import { z } from 'zod'
 
 export const meSchema = z.object({
@@ -84,6 +89,9 @@ export type Api = {
   listReports: () => Promise<WeeklyReport[]>
   listMonthlyReports: () => Promise<MonthlyReport[]>
   getReport: (id: number) => Promise<Report>
+  uploadPhoto: (id: number, angle: PhotoAngle, photo: Blob) => Promise<MonthlyReport>
+  removePhoto: (id: number, angle: PhotoAngle) => Promise<MonthlyReport>
+  photo: (id: number, angle: PhotoAngle) => Promise<Blob>
 }
 
 export class ApiError extends Error {
@@ -103,13 +111,31 @@ export type Request = <S extends z.ZodType>(
   init?: { method?: string; body?: unknown },
 ) => Promise<z.infer<S>>
 
+const bodyOf = (body: unknown) => {
+  if (body === undefined) return {}
+  return { body: body instanceof Blob ? body : JSON.stringify(body) }
+}
+
+export type FetchBlob = (path: string) => Promise<Blob>
+
+export const blobClient =
+  ({ baseUrl, initData }: { baseUrl: string; initData: string }): FetchBlob =>
+  async (path) => {
+    const res = await fetch(`${baseUrl}${path}`, { headers: { Authorization: `tma ${initData}` } })
+    if (!res.ok) throw new ApiError(res.status, 'Не удалось загрузить фото')
+    return res.blob()
+  }
+
 export const httpClient =
   ({ baseUrl, initData }: { baseUrl: string; initData: string }): Request =>
   async (path, schema, init = {}) => {
     const res = await fetch(`${baseUrl}${path}`, {
       method: init.method ?? 'GET',
-      headers: { Authorization: `tma ${initData}`, 'Content-Type': 'application/json' },
-      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      headers: {
+        Authorization: `tma ${initData}`,
+        'Content-Type': init.body instanceof Blob ? init.body.type : 'application/json',
+      },
+      ...bodyOf(init.body),
     })
     const body: unknown = await res.json().catch(() => null)
     if (!res.ok) {
@@ -122,7 +148,7 @@ export const httpClient =
     return schema.parse(body)
   }
 
-export const createApi = (request: Request): Api => ({
+export const createApi = (request: Request, fetchBlob: FetchBlob): Api => ({
   me: () => request('/me', meSchema),
   currentReport: () => request('/reports/current', weeklyReportSchema),
   currentMonthlyReport: () => request('/reports/current?kind=monthly', monthlyReportSchema),
@@ -132,6 +158,11 @@ export const createApi = (request: Request): Api => ({
   listReports: () => request('/reports', z.array(weeklyReportSchema)),
   listMonthlyReports: () => request('/reports?kind=monthly', z.array(monthlyReportSchema)),
   getReport: (id) => request(`/reports/${id}`, reportSchema),
+  uploadPhoto: (id, angle, photo) =>
+    request(`/reports/${id}/photos/${angle}`, monthlyReportSchema, { method: 'PUT', body: photo }),
+  removePhoto: (id, angle) =>
+    request(`/reports/${id}/photos/${angle}`, monthlyReportSchema, { method: 'DELETE' }),
+  photo: (id, angle) => fetchBlob(`/reports/${id}/photos/${angle}`),
 })
 
 export const createCoachApi = (request: Request): CoachApi => ({

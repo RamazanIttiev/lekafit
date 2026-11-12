@@ -9,7 +9,7 @@ import {
   type Plan,
   parseNumber,
 } from '@lekafit/shared'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import type { MonthlyReportData } from '../api'
 import {
   ChoiceField,
@@ -32,6 +32,7 @@ type Props = {
   readOnly: boolean
   invalid?: ReadonlySet<string>
   onChange: (data: MonthlyReportData) => void
+  photos?: ReactNode
 }
 
 type MetricKey = (typeof MONTHLY_METRICS)[number]['key']
@@ -55,6 +56,7 @@ export const MonthlyReportForm = ({
   readOnly,
   invalid = new Set(),
   onChange,
+  photos,
 }: Props) => {
   const set = <K extends keyof MonthlyReportData>(
     section: K,
@@ -115,72 +117,79 @@ export const MonthlyReportForm = ({
           </div>
         ),
         measures: (
-          <Section
-            title="Замеры"
-            hint="Замеряйте в одинаковых условиях. В первый месяц впишите значения на старте."
-          >
-            <div className="flex flex-col gap-4">
-              <GridHead columns={['Показатель', 'Старт', 'Было', 'Стало']} />
-              {MONTHLY_MEASURES.map((m) => (
-                <div key={m.key} className="flex flex-col gap-1">
-                  <Row>
-                    <MetricName label={m.label} unit={m.unit} />
-                    {firstMonth(m.key) ? (
+          <div className="flex flex-col gap-3">
+            <Section
+              title="Замеры"
+              hint="Замеряйте в одинаковых условиях. В первый месяц впишите значения на старте."
+            >
+              <div className="flex flex-col gap-4">
+                <GridHead columns={['Показатель', 'Старт', 'Было', 'Стало']} />
+                {MONTHLY_MEASURES.map((m) => (
+                  <div key={m.key} className="flex flex-col gap-1">
+                    <Row>
+                      <MetricName label={m.label} unit={m.unit} />
+                      {firstMonth(m.key) ? (
+                        <NumberInput
+                          label={`Старт ${m.label}`}
+                          value={data.baseline[m.key]}
+                          disabled={readOnly}
+                          invalid={false}
+                          onChange={(v) => set('baseline', { [m.key]: v })}
+                        />
+                      ) : (
+                        <Value label={`Старт ${m.label}`}>{data.baseline[m.key] || '—'}</Value>
+                      )}
+                      {hasPrev(m.key) ? (
+                        <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
+                      ) : (
+                        <NumberInput
+                          label={`Было ${m.label}`}
+                          value={data.prev[m.key]}
+                          disabled={readOnly}
+                          invalid={false}
+                          onChange={(v) => set('prev', { [m.key]: v })}
+                        />
+                      )}
                       <NumberInput
-                        label={`Старт ${m.label}`}
-                        value={data.baseline[m.key]}
+                        label={`Стало ${m.label}`}
+                        value={data.now[m.key]}
                         disabled={readOnly}
-                        invalid={false}
-                        onChange={(v) => set('baseline', { [m.key]: v })}
+                        invalid={isInvalid(`now.${m.key}`)}
+                        onChange={(v) => set('now', { [m.key]: v })}
                       />
-                    ) : (
-                      <Value label={`Старт ${m.label}`}>{data.baseline[m.key] || '—'}</Value>
-                    )}
-                    {hasPrev(m.key) ? (
-                      <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
-                    ) : (
-                      <NumberInput
-                        label={`Было ${m.label}`}
-                        value={data.prev[m.key]}
-                        disabled={readOnly}
-                        invalid={false}
-                        onChange={(v) => set('prev', { [m.key]: v })}
-                      />
-                    )}
-                    <NumberInput
-                      label={`Стало ${m.label}`}
-                      value={data.now[m.key]}
-                      disabled={readOnly}
-                      invalid={isInvalid(`now.${m.key}`)}
-                      onChange={(v) => set('now', { [m.key]: v })}
-                    />
-                  </Row>
-                  <Card.Description className="flex justify-end gap-4">
-                    <span>
-                      За месяц:{' '}
-                      <Value label={`За месяц ${m.label}`}>
-                        {formatDelta({
-                          from: parseNumber(data.prev[m.key]),
-                          to: parseNumber(data.now[m.key]),
-                          unit: m.unit,
-                        })}
-                      </Value>
-                    </span>
-                    <span>
-                      От старта:{' '}
-                      <Value label={`От старта ${m.label}`}>
-                        {formatDelta({
-                          from: parseNumber(data.baseline[m.key]),
-                          to: parseNumber(data.now[m.key]),
-                          unit: m.unit,
-                        })}
-                      </Value>
-                    </span>
-                  </Card.Description>
-                </div>
-              ))}
-            </div>
-          </Section>
+                    </Row>
+                    <Card.Description className="flex justify-end gap-4">
+                      <span>
+                        За месяц:{' '}
+                        <Value label={`За месяц ${m.label}`}>
+                          {formatDelta({
+                            from: parseNumber(data.prev[m.key]),
+                            to: parseNumber(data.now[m.key]),
+                            unit: m.unit,
+                          })}
+                        </Value>
+                      </span>
+                      <span>
+                        От старта:{' '}
+                        <Value label={`От старта ${m.label}`}>
+                          {formatDelta({
+                            from: parseNumber(data.baseline[m.key]),
+                            to: parseNumber(data.now[m.key]),
+                            unit: m.unit,
+                          })}
+                        </Value>
+                      </span>
+                    </Card.Description>
+                  </div>
+                ))}
+              </div>
+            </Section>
+            {photos && (
+              <Section title="Фото" hint="Фас, профиль и спина. Одинаковые свет, поза и одежда.">
+                {photos}
+              </Section>
+            )}
+          </div>
         ),
         wellbeing: (
           <Section title="Самочувствие" hint="Оценка месяца в целом">

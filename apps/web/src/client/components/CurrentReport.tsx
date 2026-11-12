@@ -1,11 +1,18 @@
 import { Alert, Button, Chip } from '@heroui/react'
-import { missingFields, missingPhotos, monthlyMissingFields } from '@lekafit/shared'
+import {
+  missingFields,
+  missingPhotos,
+  monthlyMissingFields,
+  type PhotoAngle,
+} from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, MonthlyReportData, Report, ReportData } from '../../api'
 import { CenteredSpinner } from '../../components/CenteredSpinner'
 import { Notice } from '../../components/Notice'
 import { monthName, period } from '../../lib/format'
+import { resizeImage } from '../../lib/resize-image'
 import { MonthlyReportForm } from '../../report/MonthlyReportForm'
+import { PhotoSlots } from '../../report/PhotoSlots'
 import { ReportForm } from '../../report/ReportForm'
 import { type SaveStatus, useAutosave } from '../../report/useAutosave'
 import { hapticSuccess } from '../../telegram'
@@ -78,6 +85,17 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
     autosave.schedule(data)
   }
 
+  const keepPhotos = (updated: { photos: Record<PhotoAngle, boolean> }) =>
+    setReport((current) =>
+      current?.kind === 'MONTHLY' ? { ...current, photos: updated.photos } : current,
+    )
+
+  const pickPhoto = async (angle: PhotoAngle, file: File) =>
+    keepPhotos(await api.uploadPhoto(report.id, angle, await resizeImage(file)))
+
+  const removePhoto = async (angle: PhotoAngle) =>
+    keepPhotos(await api.removePhoto(report.id, angle))
+
   const submit = async () => {
     const missing = missingIn(report)
     if (missing.length) return setInvalid(new Set(missing))
@@ -135,6 +153,18 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
           readOnly={readOnly}
           invalid={invalid}
           onChange={onMonthlyChange}
+          photos={
+            <PhotoSlots
+              reportId={report.id}
+              photos={report.photos}
+              prevReportId={report.prevPhotosReportId}
+              load={api.photo}
+              readOnly={readOnly}
+              isInvalid={(path) => invalid.has(path)}
+              onPick={pickPhoto}
+              onRemove={removePhoto}
+            />
+          }
         />
       )}
       {report.submittedAt === null && (

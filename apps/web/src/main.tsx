@@ -2,7 +2,7 @@ import { retrieveRawInitData } from '@tma.js/sdk-react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { createApi, createCoachApi, httpClient } from './api'
+import { blobClient, createApi, createCoachApi, httpClient } from './api'
 import { routeFromLocation } from './coach/route'
 import { ensureTelegramLaunchParams } from './lib/ensure-telegram-launch-params'
 import { initTma } from './lib/tma-sdk'
@@ -18,15 +18,17 @@ const start = async (container: HTMLElement) => {
   const debug = (launchParams.tgWebAppStartParam ?? '').includes('debug') || import.meta.env.DEV
   await initTma({ debug })
 
-  const request = httpClient({
+  const connection = {
     baseUrl: import.meta.env.VITE_API_URL ?? '/api',
     initData: retrieveRawInitData() ?? '',
-  })
+  }
+  const request = httpClient(connection)
+  const fetchBlob = blobClient(connection)
 
   createRoot(container).render(
     <StrictMode>
       <App
-        api={createApi(request)}
+        api={createApi(request, fetchBlob)}
         coachApi={createCoachApi(request)}
         confirm={confirmWithTelegram}
         initialRoute={routeFromLocation(window.location)}

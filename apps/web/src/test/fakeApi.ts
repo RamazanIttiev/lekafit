@@ -3,6 +3,7 @@ import {
   MONTHLY_METRICS,
   MONTHLY_WELLBEING,
   monthlyReportDataSchema,
+  type PhotoAngle,
   type Plan,
   type ReportData,
   reportDataSchema,
@@ -86,6 +87,7 @@ export const fakeApi = (
   } = {},
 ) => {
   const saves: ReportData[] = []
+  const uploads: { id: number; angle: PhotoAngle; type: string }[] = []
   const monthlySaves: MonthlyReportData[] = []
   const state = {
     current: options.current ?? aReport(),
@@ -127,11 +129,21 @@ export const fakeApi = (
     },
     listReports: async () => history,
     listMonthlyReports: async () => monthlyHistory,
+    uploadPhoto: async (id, angle, photo) => {
+      uploads.push({ id, angle, type: photo.type })
+      state.monthly = { ...state.monthly, photos: { ...state.monthly.photos, [angle]: true } }
+      return state.monthly
+    },
+    removePhoto: async (_id, angle) => {
+      state.monthly = { ...state.monthly, photos: { ...state.monthly.photos, [angle]: false } }
+      return state.monthly
+    },
+    photo: async () => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' }),
     getReport: async (id) => {
       const found = history.find((r) => r.id === id)
       if (!found) throw new Error('not found')
       return found
     },
   }
-  return { api, saves, monthlySaves, state }
+  return { api, saves, monthlySaves, uploads, state }
 }
