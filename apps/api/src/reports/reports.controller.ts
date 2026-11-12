@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common'
 import { CurrentUser, TelegramAuthGuard } from '../auth/telegram-auth.guard'
@@ -20,13 +21,13 @@ export class ReportsController {
   constructor(@Inject(ReportsService) private readonly reports: ReportsService) {}
 
   @Get()
-  list(@CurrentUser() user: User) {
-    return this.reports.list(user.id)
+  list(@CurrentUser() user: User, @Query('kind') kind?: string) {
+    return this.reports.list(user.id, kind)
   }
 
   @Get('current')
-  current(@CurrentUser() user: User) {
-    return this.reports.current(user.id)
+  current(@CurrentUser() user: User, @Query('kind') kind?: string) {
+    return this.reports.current(user.id, kind)
   }
 
   @Get(':id')

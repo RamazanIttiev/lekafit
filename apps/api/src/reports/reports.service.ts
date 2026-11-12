@@ -5,23 +5,83 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { MEASURES, type ReportData, reportDataSchema, weekRange } from '@lekafit/shared'
+import {
+  MEASURES,
+  MONTHLY_MEASURES,
+  type MonthlyReportData,
+  monthlyReportDataSchema,
+  monthRange,
+  type ReportData,
+  type ReportKind,
+  reportDataSchema,
+  weekRange,
+} from '@lekafit/shared'
 import { type AppConfig, CONFIG } from '../config'
-import { type Report, ReportsRepository } from './reports.repository'
+import { type MonthlyReport, type Report, ReportsRepository } from './reports.repository'
 
 export const REPORT_SUBMITTED = Symbol('REPORT_SUBMITTED')
 export type ReportSubmittedListener = (report: Report) => Promise<void>
 
-const DAYS_BACK_FOR_REPORTING_WEEK = 3
+const GRACE_DAYS = 3
 
-const reportingWeek = (now: Date) =>
-  weekRange(new Date(now.getFullYear(), now.getMonth(), now.getDate() - DAYS_BACK_FOR_REPORTING_WEEK))
+const daysBefore = (now: Date, days: number) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate() - days)
 
-const prefilledFrom = (previous: Report | null): ReportData => {
+const PERIODS: Record<ReportKind, (now: Date) => { start: string; end: string }> = {
+  WEEKLY: (now) => weekRange(daysBefore(now, GRACE_DAYS)),
+  MONTHLY: (now) => monthRange(daysBefore(now, GRACE_DAYS)),
+}
+
+const KINDS_BY_QUERY: Record<string, ReportKind> = { weekly: 'WEEKLY', monthly: 'MONTHLY' }
+
+const parseKind = (query: string | undefined): ReportKind => {
+  const kind = KINDS_BY_QUERY[query ?? 'weekly']
+  if (!kind) throw new BadRequestException('Unknown report kind')
+  return kind
+}
+
+const weeklyPrefill = (previous: Report | null): ReportData => {
   const empty = reportDataSchema.parse({})
-  if (!previous) return empty
+  if (previous?.kind !== 'WEEKLY') return empty
   const prev = Object.fromEntries(MEASURES.map((m) => [m.key, previous.data.now[m.key]]))
   return reportDataSchema.parse({ ...empty, prev })
+}
+
+const startValues = (first: MonthlyReport) =>
+  Object.fromEntries(
+    MONTHLY_MEASURES.map((m) => [m.key, first.data.baseline[m.key] || first.data.now[m.key]]),
+  )
+
+const monthlyPrefill = (
+  previous: Report | null,
+  first: Report | null,
+): MonthlyReportData => {
+  if (previous?.kind !== 'MONTHLY' || first?.kind !== 'MONTHLY')
+    return monthlyReportDataSchema.parse({})
+  return monthlyReportDataSchema.parse({
+    about: previous.data.about,
+    plan: previous.data.plan,
+    prev: Object.fromEntries(MONTHLY_MEASURES.map((m) => [m.key, previous.data.now[m.key]])),
+    baseline: startValues(first),
+  })
+}
+
+const keepFilled = (stored: Record<string, string>, input: Record<string, string>) =>
+  Object.fromEntries(Object.entries(input).map(([key, value]) => [key, stored[key] || value]))
+
+const mergeDraft = (report: Report, input: unknown): ReportData | MonthlyReportData => {
+  if (report.kind === 'WEEKLY') {
+    const parsed = reportDataSchema.safeParse(input)
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+    return { ...parsed.data, prev: report.data.prev }
+  }
+  const parsed = monthlyReportDataSchema.safeParse(input)
+  if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+  return monthlyReportDataSchema.parse({
+    ...parsed.data,
+    prev: report.data.prev,
+    baseline: keepFilled(report.data.baseline, parsed.data.baseline),
+  })
 }
 
 @Injectable()
@@ -32,12 +92,23 @@ export class ReportsService {
     @Inject(REPORT_SUBMITTED) private readonly onSubmitted: ReportSubmittedListener,
   ) {}
 
-  async current(userId: number): Promise<Report> {
-    const week = reportingWeek(this.config.now())
-    const existing = await this.reports.findForWeek(userId, week.start)
+  async current(userId: number, kindQuery?: string): Promise<Report> {
+    const kind = parseKind(kindQuery)
+    const period = PERIODS[kind](this.config.now())
+    const existing = await this.reports.findForPeriod({ userId, kind, weekStart: period.start })
     if (existing) return existing
-    const data = prefilledFrom(await this.reports.lastSubmitted(userId))
-    return this.reports.create({ userId, weekStart: week.start, weekEnd: week.end, data })
+    const previous = await this.reports.lastSubmitted(userId, kind)
+    const data =
+      kind === 'WEEKLY'
+        ? weeklyPrefill(previous)
+        : monthlyPrefill(previous, await this.reports.firstSubmitted(userId, kind))
+    return this.reports.create({
+      userId,
+      kind,
+      weekStart: period.start,
+      weekEnd: period.end,
+      data,
+    })
   }
 
   async own(userId: number, id: number): Promise<Report> {
@@ -49,9 +120,7 @@ export class ReportsService {
   async saveDraft(userId: number, id: number, input: unknown): Promise<Report> {
     const report = await this.own(userId, id)
     if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
-    const parsed = reportDataSchema.safeParse(input)
-    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-    await this.reports.updateDraft(id, { ...parsed.data, prev: report.data.prev })
+    await this.reports.updateDraft(id, mergeDraft(report, input))
     return this.own(userId, id)
   }
 
@@ -64,7 +133,7 @@ export class ReportsService {
     return submitted
   }
 
-  list(userId: number): Promise<Report[]> {
-    return this.reports.listFor(userId)
+  list(userId: number, kindQuery?: string): Promise<Report[]> {
+    return this.reports.listFor(userId, parseKind(kindQuery))
   }
 }

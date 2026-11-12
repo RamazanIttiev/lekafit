@@ -1,6 +1,6 @@
 import { reportDataSchema } from '@lekafit/shared'
 import { describe, expect, it } from 'vitest'
-import type { Report } from '../reports/reports.repository'
+import type { WeeklyReport } from '../reports/reports.repository'
 import type { User } from '../users/users.repository'
 import { reportSummary } from './report-summary'
 
@@ -14,8 +14,11 @@ const aUser = (overrides: Partial<User> = {}): User => ({
   ...overrides,
 })
 
-const aReport = (overrides: Omit<Partial<Report>, 'data'> & { data?: object } = {}): Report => ({
+const aReport = (
+  overrides: Omit<Partial<WeeklyReport>, 'data'> & { data?: object } = {},
+): WeeklyReport => ({
   id: 1,
+  kind: 'WEEKLY',
   userId: 1,
   weekStart: '2026-11-09',
   weekEnd: '2026-11-15',

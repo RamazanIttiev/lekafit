@@ -1,4 +1,4 @@
-import type { Plan } from '@lekafit/shared'
+import type { Plan, ReportKind } from '@lekafit/shared'
 import {
   Column,
   Entity,
@@ -11,7 +11,7 @@ import {
 import { UserEntity } from '../users/user.entity'
 
 @Entity('reports')
-@Unique('reports_user_week', ['userId', 'weekStart'])
+@Unique('reports_user_kind_period', ['userId', 'kind', 'weekStart'])
 export class ReportEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number
@@ -22,6 +22,9 @@ export class ReportEntity {
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user?: UserEntity
+
+  @Column({ type: 'varchar', length: 10, default: 'WEEKLY' })
+  kind!: ReportKind
 
   @Column({ name: 'week_start', type: 'date' })
   weekStart!: string

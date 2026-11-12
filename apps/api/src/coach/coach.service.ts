@@ -77,7 +77,7 @@ export class CoachService {
 
   async clientReports(id: number) {
     await this.client(id)
-    const all = await this.reports.listFor(id)
+    const all = await this.reports.listFor(id, 'WEEKLY')
     return all.filter((r) => r.submittedAt !== null)
   }
 
