@@ -85,3 +85,40 @@ describe('coach notification on submit', () => {
     await failing.close()
   })
 })
+
+describe('plan change notification', () => {
+  const plan = { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: 3 }
+  const coach = () => as(app, { id: COACH_ID, first_name: 'Лека' })
+
+  it('messages the client in Telegram only when the coach asks for it', async () => {
+    const client = aClient()
+    const { body } = await as(app, client).get('/me')
+
+    await coach().put(`/coach/clients/${body.id}/plan`, plan).expect(200)
+    expect(sent).toEqual([])
+
+    await coach().put(`/coach/clients/${body.id}/plan?notify=true`, plan).expect(200)
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.chatId).toBe(client.id)
+  })
+
+  it('still saves the plan when Telegram delivery fails', async () => {
+    const failing = await startApp(
+      {},
+      {
+        telegram: {
+          send: async () => {
+            throw new Error('blocked')
+          },
+          botUsername: async () => 'bot',
+        },
+      },
+    )
+    const client = aClient()
+    const { body } = await as(failing, client).get('/me')
+    await as(failing, { id: COACH_ID, first_name: 'Лека' })
+      .put(`/coach/clients/${body.id}/plan?notify=true`, plan)
+      .expect(200)
+    await failing.close()
+  })
+})

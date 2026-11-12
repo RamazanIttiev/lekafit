@@ -1,4 +1,5 @@
 import type { ClientListItem, ClientProfile, CoachApi, Plan, Report } from '../api'
+import { aPlan } from './fakeApi'
 
 export const aListItem = (overrides: Partial<ClientListItem> = {}): ClientListItem => ({
   id: 1,
@@ -17,20 +18,22 @@ export const fakeCoachApi = (options: {
   reports?: Report[]
 }) => {
   const savedPlans: Plan[] = []
+  const notifiedPlans: Plan[] = []
   const photoRequests: [number, string][] = []
   const profile = options.profile ?? {
     id: 1,
     firstName: 'Анна',
     lastName: null,
     username: null,
-    plan: null,
+    plan: aPlan({ trainingMonth: 12, cardioMonth: 300 }),
   }
   const reports = options.reports ?? []
   const api: CoachApi = {
     clients: async () => options.clients ?? [],
     client: async () => profile,
-    setPlan: async (_id, plan) => {
+    setPlan: async (_id, plan, options) => {
       savedPlans.push(plan)
+      if (options?.notify) notifiedPlans.push(plan)
       return plan
     },
     clientReports: async () => reports,
@@ -49,5 +52,5 @@ export const fakeCoachApi = (options: {
       return { ...found, client: profile }
     },
   }
-  return { api, savedPlans, photoRequests }
+  return { api, savedPlans, notifiedPlans, photoRequests }
 }

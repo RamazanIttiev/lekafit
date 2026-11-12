@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-react'
+import type { Plan } from '../api'
 import { aMonthlyReport, aPlan, aReport, monthlyDataWith } from '../test/fakeApi'
 import { fakeBackButton } from '../test/fakeBackButton'
 import { fakeCoachApi } from '../test/fakeCoachApi'
 import { CoachApp } from './CoachApp'
+
+const fullPlan = (overrides: Partial<Plan> = {}) =>
+  aPlan({ trainingMonth: 12, cardioMonth: 300, ...overrides })
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0], initialRoute: string) => {
   const fake = fakeCoachApi(setup)
@@ -20,7 +24,7 @@ const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0], initialRou
   return { ...fake, downloads, screen }
 }
 
-const profile = { id: 1, firstName: 'Анна', lastName: 'Иванова', username: null, plan: aPlan() }
+const profile = { id: 1, firstName: 'Анна', lastName: 'Иванова', username: null, plan: fullPlan() }
 const submitted = '2026-12-01T09:00:00.000Z'
 
 describe('coach: monthly targets', () => {
@@ -29,8 +33,9 @@ describe('coach: monthly targets', () => {
     await screen.getByLabelText('Тренировки в месяц', { exact: true }).fill('12')
     await screen.getByLabelText('Кардио в месяц', { exact: true }).fill('300')
     await screen.getByRole('button', { name: 'Сохранить план' }).click()
+    await screen.getByRole('button', { name: 'Сохранить', exact: true }).click()
     await expect.element(screen.getByText('План сохранён')).toBeVisible()
-    expect(savedPlans).toEqual([aPlan({ trainingMonth: 12, cardioMonth: 300 })])
+    expect(savedPlans).toEqual([fullPlan()])
   })
 })
 

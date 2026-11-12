@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-react'
+import type { Plan } from '../api'
 import { aPlan, aReport, dataWith } from '../test/fakeApi'
 import { fakeBackButton } from '../test/fakeBackButton'
 import { aListItem, fakeCoachApi } from '../test/fakeCoachApi'
 import { CoachApp } from './CoachApp'
 import { routeFromLocation } from './route'
+
+const fullPlan = (overrides: Partial<Plan> = {}) =>
+  aPlan({ trainingMonth: 12, cardioMonth: 300, ...overrides })
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initialRoute = '#/') => {
   const fake = fakeCoachApi(setup)
@@ -75,24 +79,64 @@ describe('client list', () => {
 describe('client page', () => {
   const clientRoute = '#/coach/clients/1'
 
-  it('edits the plan, leaving empty fields unset', async () => {
+  it('edits the plan', async () => {
     const { screen, savedPlans } = await renderCoach(
-      { profile: { id: 1, firstName: 'Анна', lastName: null, username: null, plan: aPlan() } },
+      { profile: { id: 1, firstName: 'Анна', lastName: null, username: null, plan: fullPlan() } },
       clientRoute,
     )
     await expect.element(screen.getByLabelText('Калории', { exact: true })).toHaveValue('1800')
     await screen.getByLabelText('Калории', { exact: true }).fill('1 650')
+    await screen.getByRole('button', { name: 'Сохранить план' }).click()
+    await screen.getByRole('button', { name: 'Сохранить', exact: true }).click()
+    await expect.element(screen.getByText('План сохранён')).toBeVisible()
+    expect(savedPlans).toEqual([fullPlan({ cal: 1650 })])
+  })
+
+  it('saves and notifies the client when the coach chooses to send a message', async () => {
+    const { screen, savedPlans, notifiedPlans } = await renderCoach({}, clientRoute)
+    await screen.getByLabelText('Калории', { exact: true }).fill('1500')
+    await screen.getByRole('button', { name: 'Сохранить план' }).click()
+    await screen.getByRole('button', { name: 'Сохранить и отправить сообщение' }).click()
+    await expect.element(screen.getByText('План сохранён')).toBeVisible()
+    expect(notifiedPlans).toEqual(savedPlans)
+    expect(savedPlans).toHaveLength(1)
+  })
+
+  it('saves without notifying on plain save', async () => {
+    const { screen, savedPlans, notifiedPlans } = await renderCoach({}, clientRoute)
+    await screen.getByRole('button', { name: 'Сохранить план' }).click()
+    await screen.getByRole('button', { name: 'Сохранить', exact: true }).click()
+    await expect.element(screen.getByText('План сохранён')).toBeVisible()
+    expect(savedPlans).toHaveLength(1)
+    expect(notifiedPlans).toEqual([])
+  })
+
+  it('saves nothing when the confirmation is closed', async () => {
+    const { screen, savedPlans } = await renderCoach({}, clientRoute)
+    await screen.getByRole('button', { name: 'Сохранить план' }).click()
+    await screen.getByRole('button', { name: 'Close' }).click()
+    expect(savedPlans).toEqual([])
+  })
+
+  it('requires every field before asking for confirmation', async () => {
+    const { screen, savedPlans } = await renderCoach(
+      { profile: { id: 1, firstName: 'Анна', lastName: null, username: null, plan: fullPlan() } },
+      clientRoute,
+    )
     await screen.getByLabelText('Тренировки', { exact: true }).fill('')
     await screen.getByRole('button', { name: 'Сохранить план' }).click()
-    await expect.element(screen.getByText('План сохранён')).toBeVisible()
-    expect(savedPlans).toEqual([aPlan({ cal: 1650, training: null })])
+    await expect.element(screen.getByText('Обязательное поле')).toBeVisible()
+    await expect
+      .element(screen.getByRole('button', { name: 'Сохранить', exact: true }))
+      .not.toBeInTheDocument()
+    expect(savedPlans).toEqual([])
   })
 
   it('refuses to save a plan with invalid numbers', async () => {
     const { screen, savedPlans } = await renderCoach({}, clientRoute)
     await screen.getByLabelText('Калории', { exact: true }).fill('много')
     await screen.getByRole('button', { name: 'Сохранить план' }).click()
-    await expect.element(screen.getByText('Проверьте значения: Калории')).toBeVisible()
+    await expect.element(screen.getByText('Введите число')).toBeVisible()
     expect(savedPlans).toEqual([])
   })
 

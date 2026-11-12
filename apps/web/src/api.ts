@@ -75,7 +75,7 @@ export type Plan = NonNullable<WeeklyReport['plan']>
 export type CoachApi = {
   clients: () => Promise<ClientListItem[]>
   client: (id: number) => Promise<ClientProfile>
-  setPlan: (id: number, plan: Plan) => Promise<Plan>
+  setPlan: (id: number, plan: Plan, options?: { notify: boolean }) => Promise<Plan>
   clientReports: (id: number) => Promise<Report[]>
   report: (id: number) => Promise<CoachReport>
   invite: () => Promise<{ url: string }>
@@ -171,8 +171,11 @@ export const createApi = (request: Request, fetchBlob: FetchBlob): Api => ({
 export const createCoachApi = (request: Request, fetchBlob: FetchBlob): CoachApi => ({
   clients: () => request('/coach/clients', z.array(clientListItemSchema)),
   client: (id) => request(`/coach/clients/${id}`, clientProfileSchema),
-  setPlan: (id, plan) =>
-    request(`/coach/clients/${id}/plan`, planSchema, { method: 'PUT', body: plan }),
+  setPlan: (id, plan, options) =>
+    request(`/coach/clients/${id}/plan${options?.notify ? '?notify=true' : ''}`, planSchema, {
+      method: 'PUT',
+      body: plan,
+    }),
   clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
   report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
   invite: () => request('/coach/invite', z.object({ url: z.string() })),

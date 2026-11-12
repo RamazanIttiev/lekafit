@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   StreamableFile,
   UseGuards,
 } from '@nestjs/common'
@@ -40,8 +41,12 @@ export class CoachController {
   }
 
   @Put('clients/:id/plan')
-  setPlan(@Param('id', ParseIntPipe) id: number, @Body() body: unknown) {
-    return this.coach.setPlan(id, body)
+  setPlan(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: unknown,
+    @Query('notify') notify?: string,
+  ) {
+    return this.coach.setPlan(id, body, notify === 'true')
   }
 
   @Get('clients/:id/reports')
