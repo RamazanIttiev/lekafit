@@ -104,6 +104,7 @@ const measureValues = z
   .prefault({})
 
 export const reportDataSchema = z.object({
+  plan: metricValues,
   fact: metricValues,
   prev: measureValues,
   now: measureValues,

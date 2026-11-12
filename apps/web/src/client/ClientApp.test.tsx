@@ -24,6 +24,15 @@ describe('weekly report form', () => {
     await expect.element(screen.getByText('Тренер ещё не задал план')).toBeVisible()
   })
 
+  it('lets the client fill only the plan values the coach has not set', async () => {
+    const { screen } = await renderClient({ current: aReport({ plan: aPlan({ cal: null }) }) })
+    await screen.getByLabelText('План Калории').fill('2 000')
+    await screen.getByLabelText('Факт Калории').fill('2 100')
+    await expect.element(screen.getByLabelText('Разница Калории')).toHaveTextContent('+100')
+    await expect.element(screen.getByLabelText('План Белки')).toHaveTextContent('120')
+    expect(screen.getByLabelText('План Белки').element().tagName).toBe('OUTPUT')
+  })
+
   it('calculates the difference from the plan as the client types', async () => {
     const { screen } = await renderClient()
     await screen.getByLabelText('Факт Калории').fill('1 850')
@@ -36,7 +45,7 @@ describe('weekly report form', () => {
     })
     await screen.getByLabelText('Факт Тренировки').fill('3')
     await screen.getByLabelText('Факт Шаги').fill('10000')
-    await expect.element(screen.getByLabelText('Выполнение тренировок')).toHaveTextContent('75%')
+    await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
     await expect.element(screen.getByLabelText('Средние шаги')).toHaveTextContent('125%')
   })
 

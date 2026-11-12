@@ -159,7 +159,9 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
 
   const isInvalid = (path: string) => invalid.has(path)
 
-  const planValue = (key: (typeof METRICS)[number]['key']) => plan?.[key] ?? null
+  const coachPlan = (key: (typeof METRICS)[number]['key']) => plan?.[key] ?? null
+  const planValue = (key: (typeof METRICS)[number]['key']) =>
+    coachPlan(key) ?? parseNumber(data.plan[key])
 
   return (
     <Tabs className="w-full">
@@ -190,7 +192,17 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
             {METRICS.map((m) => (
               <Row key={m.key}>
                 <MetricName label={m.label} unit={`${m.unit} / ${m.scope}`} />
-                <Value label={`План ${m.label}`}>{plainNumber(planValue(m.key))}</Value>
+                {coachPlan(m.key) === null ? (
+                  <NumberInput
+                    label={`План ${m.label}`}
+                    value={data.plan[m.key]}
+                    disabled={readOnly}
+                    invalid={false}
+                    onChange={(v) => set('plan', { [m.key]: v })}
+                  />
+                ) : (
+                  <Value label={`План ${m.label}`}>{plainNumber(coachPlan(m.key))}</Value>
+                )}
                 <NumberInput
                   label={`Факт ${m.label}`}
                   value={data.fact[m.key]}
