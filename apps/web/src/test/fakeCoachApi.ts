@@ -6,6 +6,7 @@ export const aListItem = (overrides: Partial<ClientListItem> = {}): ClientListIt
   lastName: 'Иванова',
   username: 'anna',
   lastReportWeek: '2026-11-09',
+  hasMonthlyReport: false,
   unseenReports: 0,
   ...overrides,
 })

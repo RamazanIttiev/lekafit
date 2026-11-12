@@ -9,6 +9,11 @@ import type { Route } from '../route'
 import { Loading, useLoad } from '../useLoad'
 import { InviteButton } from './InviteButton'
 
+const reportLabel = (c: ClientListItem) => {
+  if (c.lastReportWeek) return `последний: ${shortDate(c.lastReportWeek)}`
+  return c.hasMonthlyReport ? 'месячный отчёт' : 'отчётов нет'
+}
+
 export const Clients = ({
   api,
   go,
@@ -52,9 +57,7 @@ export const Clients = ({
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-semibold">{fullName(c)}</span>
-                <span className="text-sm text-muted">
-                  {c.lastReportWeek ? `последний: ${shortDate(c.lastReportWeek)}` : 'отчётов нет'}
-                </span>
+                <span className="text-sm text-muted">{reportLabel(c)}</span>
               </span>
               {c.unseenReports > 0 && (
                 <Chip size="sm" color="accent">

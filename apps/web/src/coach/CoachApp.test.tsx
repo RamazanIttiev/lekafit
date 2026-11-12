@@ -28,8 +28,18 @@ describe('client list', () => {
       clients: [
         aListItem({ id: 1, firstName: 'Ольга', lastName: null, unseenReports: 2 }),
         aListItem({ id: 2, firstName: 'Ира', lastName: null, lastReportWeek: null }),
+        aListItem({
+          id: 3,
+          firstName: 'Рамазан',
+          lastName: null,
+          lastReportWeek: null,
+          hasMonthlyReport: true,
+        }),
       ],
     })
+    await expect
+      .element(screen.getByRole('button', { name: /Рамазан.*месячный отчёт/ }))
+      .toBeVisible()
     await expect.element(screen.getByRole('button', { name: /Ольга.*новых: 2/ })).toBeVisible()
     await expect.element(screen.getByRole('button', { name: /Ира.*отчётов нет/ })).toBeVisible()
   })

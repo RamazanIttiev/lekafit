@@ -208,6 +208,13 @@ describe('monthly reports for the coach', () => {
     expect(clients.body[0].lastReportWeek).toBe('2026-11-09')
   })
 
+  it('tells the coach a client has a monthly report even without weekly ones', async () => {
+    const client = aClient()
+    await submitMonth(new Date(2026, 10, 20, 9), client, {})
+    const clients = await as(app, theCoach()).get('/coach/clients')
+    expect(clients.body[0]).toMatchObject({ lastReportWeek: null, hasMonthlyReport: true })
+  })
+
   it('shows the coach monthly workout and cardio targets in the monthly report', async () => {
     const client = aClient()
     const { body: me } = await as(app, client).get('/me')

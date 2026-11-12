@@ -55,6 +55,7 @@ export const coachClientSchema = z.object({
 
 export const clientListItemSchema = coachClientSchema.extend({
   lastReportWeek: z.string().nullable(),
+  hasMonthlyReport: z.boolean(),
   unseenReports: z.number(),
 })
 

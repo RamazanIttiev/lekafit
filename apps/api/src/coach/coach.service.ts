@@ -4,7 +4,11 @@ import { TELEGRAM, type TelegramGateway } from '../bot/telegram.gateway'
 import { ReportsRepository, type SubmittedSummary } from '../reports/reports.repository'
 import { type User, UsersRepository } from '../users/users.repository'
 
-export type ClientSummary = User & { lastReportWeek: string | null; unseenReports: number }
+export type ClientSummary = User & {
+  lastReportWeek: string | null
+  hasMonthlyReport: boolean
+  unseenReports: number
+}
 
 const latestIsoDate = (dates: string[]): string | null => dates.toSorted().at(-1) ?? null
 
@@ -19,6 +23,7 @@ const summarize = (client: User, reports: SubmittedSummary[]) => ({
     lastReportWeek: latestIsoDate(
       reports.filter((r) => r.kind === 'WEEKLY').map((r) => r.weekStart),
     ),
+    hasMonthlyReport: reports.some((r) => r.kind === 'MONTHLY'),
     unseenReports: reports.filter((r) => r.seenByCoachAt === null).length,
   },
   lastSubmittedAt: latestTime(reports.map((r) => r.submittedAt)),

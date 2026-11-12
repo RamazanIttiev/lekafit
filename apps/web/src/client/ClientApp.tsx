@@ -11,7 +11,7 @@ export const ClientApp = ({ api, confirm }: Props) => (
       <Tabs.ListContainer>
         <Tabs.List aria-label="Отчёты">
           <Tabs.Tab id="current">
-            Эта неделя
+            Неделя
             <Tabs.Indicator />
           </Tabs.Tab>
           <Tabs.Tab id="month">
