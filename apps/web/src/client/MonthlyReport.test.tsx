@@ -157,8 +157,26 @@ const aPhoto = (name = 'photo.png'): Promise<File> => {
 
 describe('monthly photos', () => {
   const openPhotos = async (screen: Awaited<ReturnType<typeof renderMonthly>>['screen']) => {
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('tab', { name: 'Фото' }).click()
   }
+
+  it('keeps photos in their own tab, the last of five', async () => {
+    const { screen } = await renderMonthly()
+    const sections = screen.getByRole('tablist', { name: 'Разделы отчёта' })
+    const names = sections
+      .getByRole('tab')
+      .elements()
+      .map((tab) => tab.getAttribute('aria-label'))
+    expect(names).toEqual([
+      'Питание и активность',
+      'Замеры',
+      'Самочувствие',
+      'Обратная связь',
+      'Фото',
+    ])
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect.element(screen.getByLabelText('Выбрать фото: Фас')).not.toBeInTheDocument()
+  })
 
   it('uploads a resized JPEG for the chosen angle and shows it', async () => {
     const { screen, uploads } = await renderMonthly()

@@ -85,7 +85,7 @@ describe('coach: monthly photos', () => {
       { profile, reports: [withPhotos] },
       '#/coach/reports/21',
     )
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('tab', { name: 'Фото' }).click()
     await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
     await expect.element(screen.getByRole('img', { name: 'Фас — прошлый месяц' })).toBeVisible()
     await expect.poll(() => photoRequests).toContainEqual([11, 'front'])
@@ -94,7 +94,7 @@ describe('coach: monthly photos', () => {
 
   it('shows photos read-only', async () => {
     const { screen } = await renderCoach({ profile, reports: [withPhotos] }, '#/coach/reports/21')
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('tab', { name: 'Фото' }).click()
     await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
     await expect.element(screen.getByLabelText('Выбрать фото: Фас')).not.toBeInTheDocument()
     await expect
@@ -107,7 +107,7 @@ describe('coach: monthly photos', () => {
       { profile, reports: [withPhotos] },
       '#/coach/reports/21',
     )
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('tab', { name: 'Фото' }).click()
     await screen.getByRole('button', { name: 'Скачать фото: Профиль' }).click()
     await expect
       .poll(() => downloads)
@@ -121,7 +121,7 @@ describe('coach: monthly photos', () => {
 
   it('offers no download for a missing photo', async () => {
     const { screen } = await renderCoach({ profile, reports: [withPhotos] }, '#/coach/reports/21')
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('tab', { name: 'Фото' }).click()
     await expect
       .element(screen.getByRole('button', { name: 'Скачать фото: Профиль' }))
       .toBeVisible()

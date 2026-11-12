@@ -117,79 +117,72 @@ export const MonthlyReportForm = ({
           </div>
         ),
         measures: (
-          <div className="flex flex-col gap-3">
-            <Section
-              title="Замеры"
-              hint="Замеряйте в одинаковых условиях. В первый месяц впишите значения на старте."
-            >
-              <div className="flex flex-col gap-4">
-                <GridHead columns={['Показатель', 'Старт', 'Было', 'Стало']} />
-                {MONTHLY_MEASURES.map((m) => (
-                  <div key={m.key} className="flex flex-col gap-1">
-                    <Row>
-                      <MetricName label={m.label} unit={m.unit} />
-                      {firstMonth(m.key) ? (
-                        <NumberInput
-                          label={`Старт ${m.label}`}
-                          value={data.baseline[m.key]}
-                          disabled={readOnly}
-                          invalid={false}
-                          onChange={(v) => set('baseline', { [m.key]: v })}
-                        />
-                      ) : (
-                        <Value label={`Старт ${m.label}`}>{data.baseline[m.key] || '—'}</Value>
-                      )}
-                      {hasPrev(m.key) ? (
-                        <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
-                      ) : (
-                        <NumberInput
-                          label={`Было ${m.label}`}
-                          value={data.prev[m.key]}
-                          disabled={readOnly}
-                          invalid={false}
-                          onChange={(v) => set('prev', { [m.key]: v })}
-                        />
-                      )}
+          <Section
+            title="Замеры"
+            hint="Замеряйте в одинаковых условиях. В первый месяц впишите значения на старте."
+          >
+            <div className="flex flex-col gap-4">
+              <GridHead columns={['Показатель', 'Старт', 'Было', 'Стало']} />
+              {MONTHLY_MEASURES.map((m) => (
+                <div key={m.key} className="flex flex-col gap-1">
+                  <Row>
+                    <MetricName label={m.label} unit={m.unit} />
+                    {firstMonth(m.key) ? (
                       <NumberInput
-                        label={`Стало ${m.label}`}
-                        value={data.now[m.key]}
+                        label={`Старт ${m.label}`}
+                        value={data.baseline[m.key]}
                         disabled={readOnly}
-                        invalid={isInvalid(`now.${m.key}`)}
-                        onChange={(v) => set('now', { [m.key]: v })}
+                        invalid={false}
+                        onChange={(v) => set('baseline', { [m.key]: v })}
                       />
-                    </Row>
-                    <Card.Description className="flex justify-end gap-4">
-                      <span>
-                        За месяц:{' '}
-                        <Value label={`За месяц ${m.label}`}>
-                          {formatDelta({
-                            from: parseNumber(data.prev[m.key]),
-                            to: parseNumber(data.now[m.key]),
-                            unit: m.unit,
-                          })}
-                        </Value>
-                      </span>
-                      <span>
-                        От старта:{' '}
-                        <Value label={`От старта ${m.label}`}>
-                          {formatDelta({
-                            from: parseNumber(data.baseline[m.key]),
-                            to: parseNumber(data.now[m.key]),
-                            unit: m.unit,
-                          })}
-                        </Value>
-                      </span>
-                    </Card.Description>
-                  </div>
-                ))}
-              </div>
-            </Section>
-            {photos && (
-              <Section title="Фото" hint="Фас, профиль и спина. Одинаковые свет, поза и одежда.">
-                {photos}
-              </Section>
-            )}
-          </div>
+                    ) : (
+                      <Value label={`Старт ${m.label}`}>{data.baseline[m.key] || '—'}</Value>
+                    )}
+                    {hasPrev(m.key) ? (
+                      <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
+                    ) : (
+                      <NumberInput
+                        label={`Было ${m.label}`}
+                        value={data.prev[m.key]}
+                        disabled={readOnly}
+                        invalid={false}
+                        onChange={(v) => set('prev', { [m.key]: v })}
+                      />
+                    )}
+                    <NumberInput
+                      label={`Стало ${m.label}`}
+                      value={data.now[m.key]}
+                      disabled={readOnly}
+                      invalid={isInvalid(`now.${m.key}`)}
+                      onChange={(v) => set('now', { [m.key]: v })}
+                    />
+                  </Row>
+                  <Card.Description className="flex justify-end gap-4">
+                    <span>
+                      За месяц:{' '}
+                      <Value label={`За месяц ${m.label}`}>
+                        {formatDelta({
+                          from: parseNumber(data.prev[m.key]),
+                          to: parseNumber(data.now[m.key]),
+                          unit: m.unit,
+                        })}
+                      </Value>
+                    </span>
+                    <span>
+                      От старта:{' '}
+                      <Value label={`От старта ${m.label}`}>
+                        {formatDelta({
+                          from: parseNumber(data.baseline[m.key]),
+                          to: parseNumber(data.now[m.key]),
+                          unit: m.unit,
+                        })}
+                      </Value>
+                    </span>
+                  </Card.Description>
+                </div>
+              ))}
+            </div>
+          </Section>
         ),
         wellbeing: (
           <Section title="Самочувствие" hint="Оценка месяца в целом">
@@ -216,6 +209,30 @@ export const MonthlyReportForm = ({
           </Section>
         ),
       }}
+      extra={
+        photos
+          ? [
+              {
+                id: 'photos',
+                label: 'Фото',
+                icon: (
+                  <>
+                    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </>
+                ),
+                panel: (
+                  <Section
+                    title="Фото"
+                    hint="Фас, профиль и спина. Одинаковые свет, поза и одежда."
+                  >
+                    {photos}
+                  </Section>
+                ),
+              },
+            ]
+          : []
+      }
     />
   )
 }

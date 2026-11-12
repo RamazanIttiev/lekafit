@@ -295,26 +295,33 @@ export const FeedbackFields = <K extends string>({
   </div>
 )
 
+export type ExtraTab = { id: string; label: string; icon: ReactNode; panel: ReactNode }
+
 export const ReportTabs = ({
   panels,
+  extra = [],
 }: {
   panels: Record<(typeof TABS)[number]['id'], ReactNode>
-}) => (
-  <Tabs className="w-full">
-    <Tabs.ListContainer>
-      <Tabs.List aria-label="Разделы отчёта">
-        {TABS.map((t) => (
-          <Tabs.Tab key={t.id} id={t.id} aria-label={t.label}>
-            <Icon>{t.icon}</Icon>
-            <Tabs.Indicator />
-          </Tabs.Tab>
-        ))}
-      </Tabs.List>
-    </Tabs.ListContainer>
-    {TABS.map((t) => (
-      <Tabs.Panel key={t.id} className="p-0" id={t.id}>
-        {panels[t.id]}
-      </Tabs.Panel>
-    ))}
-  </Tabs>
-)
+  extra?: readonly ExtraTab[]
+}) => {
+  const tabs = [...TABS.map((t) => ({ ...t, panel: panels[t.id] })), ...extra]
+  return (
+    <Tabs className="w-full">
+      <Tabs.ListContainer>
+        <Tabs.List aria-label="Разделы отчёта">
+          {tabs.map((t) => (
+            <Tabs.Tab key={t.id} id={t.id} aria-label={t.label}>
+              <Icon>{t.icon}</Icon>
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+      </Tabs.ListContainer>
+      {tabs.map((t) => (
+        <Tabs.Panel key={t.id} className="p-0" id={t.id}>
+          {t.panel}
+        </Tabs.Panel>
+      ))}
+    </Tabs>
+  )
+}

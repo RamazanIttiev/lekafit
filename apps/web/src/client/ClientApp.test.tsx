@@ -51,6 +51,7 @@ describe('weekly report form', () => {
 
   it('shows one report section at a time, switched by icon tabs', async () => {
     const { screen } = await renderClient()
+    await expect.element(screen.getByRole('tab', { name: 'Фото' })).not.toBeInTheDocument()
     await expect.element(screen.getByLabelText('Факт Калории')).toBeVisible()
     await screen.getByRole('tab', { name: 'Обратная связь' }).click()
     await expect.element(screen.getByLabelText('Что получилось хорошо?')).toBeVisible()
