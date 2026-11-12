@@ -193,3 +193,139 @@ export const missingFields = (data: ReportData): string[] => [
   ...WELLBEING.filter((w) => !hasText(data.wellbeing[w.key])).map((w) => `wellbeing.${w.key}`),
   ...FEEDBACK.filter((f) => !hasText(data.feedback[f.key])).map((f) => `feedback.${f.key}`),
 ]
+
+export const MONTHLY_METRICS = [
+  ...METRICS.filter((m) => m.key !== 'training'),
+  { key: 'training', label: 'Силовые тренировки', unit: 'раз', scope: 'месяц' },
+  { key: 'cardio', label: 'Кардио', unit: 'мин', scope: 'месяц' },
+] as const
+
+export const MONTHLY_MEASURES = [
+  ...MEASURES,
+  { key: 'thigh', label: 'Обхват бедра', unit: 'см' },
+] as const
+
+export const MONTHLY_WELLBEING = [
+  ...WELLBEING,
+  {
+    key: 'planEase',
+    label: 'Соблюдение плана',
+    options: [
+      'Почти без сложностей',
+      'В целом получалось',
+      'Были заметные трудности',
+      'План часто не выполнялся',
+    ],
+  },
+  {
+    key: 'healthChange',
+    label: 'Самочувствие относительно прошлого месяца',
+    options: [
+      'Значительно лучше',
+      'Немного лучше',
+      'Без заметных изменений',
+      'Немного хуже',
+      'Значительно хуже',
+      'Первый месяц — не сравниваю',
+    ],
+  },
+  {
+    key: 'consistency',
+    label: 'Питание по плану в течение месяца',
+    options: [
+      'Почти каждый день',
+      'Большую часть месяца',
+      'Примерно половину месяца',
+      'Реже половины месяца',
+    ],
+  },
+] as const
+
+export const MONTHLY_FEEDBACK = [
+  { key: 'wins', label: 'Главные достижения и изменения за месяц' },
+  { key: 'issues', label: 'Что мешало выполнять план?' },
+  { key: 'changes', label: 'Что изменилось по ощущениям или по одежде?' },
+  { key: 'questions', label: 'Вопросы к тренеру и пожелания на следующий месяц' },
+] as const
+
+export const GOALS = [
+  'Снижение жировой массы',
+  'Набор мышечной массы',
+  'Рекомпозиция тела',
+  'Поддержание формы',
+  'Здоровье и пищевые привычки',
+  'Другое',
+] as const
+
+const OPTIONAL_MONTHLY_METRICS: readonly string[] = ['cardio']
+
+const monthlyMetricValues = z
+  .object({
+    cal: numericText,
+    protein: numericText,
+    fat: numericText,
+    carb: numericText,
+    steps: numericText,
+    training: numericText,
+    cardio: numericText,
+  })
+  .prefault({})
+
+const monthlyMeasureValues = z
+  .object({
+    weight: numericText,
+    chest: numericText,
+    waist: numericText,
+    hips: numericText,
+    glutes: numericText,
+    arm: numericText,
+    thigh: numericText,
+  })
+  .prefault({})
+
+export const monthlyReportDataSchema = z.object({
+  about: z
+    .object({ startDate: z.string().max(10).default(''), goal: optionOrEmpty(GOALS) })
+    .prefault({}),
+  plan: monthlyMetricValues,
+  fact: monthlyMetricValues,
+  baseline: monthlyMeasureValues,
+  prev: monthlyMeasureValues,
+  now: monthlyMeasureValues,
+  wellbeing: z
+    .object({
+      sleep: optionOrEmpty(MONTHLY_WELLBEING[0].options),
+      energy: optionOrEmpty(MONTHLY_WELLBEING[1].options),
+      stress: optionOrEmpty(MONTHLY_WELLBEING[2].options),
+      hunger: optionOrEmpty(MONTHLY_WELLBEING[3].options),
+      sweet: optionOrEmpty(MONTHLY_WELLBEING[4].options),
+      digestion: optionOrEmpty(MONTHLY_WELLBEING[5].options),
+      planEase: optionOrEmpty(MONTHLY_WELLBEING[6].options),
+      healthChange: optionOrEmpty(MONTHLY_WELLBEING[7].options),
+      consistency: optionOrEmpty(MONTHLY_WELLBEING[8].options),
+      note: text,
+    })
+    .prefault({}),
+  feedback: z.object({ wins: text, issues: text, changes: text, questions: text }).prefault({}),
+})
+
+export type MonthlyReportData = z.infer<typeof monthlyReportDataSchema>
+
+export const monthRange = (today: Date): { start: string; end: string } => ({
+  start: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)),
+  end: isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+})
+
+export const monthlyMissingFields = (data: MonthlyReportData): string[] => [
+  ...MONTHLY_METRICS.filter(
+    (m) => !OPTIONAL_MONTHLY_METRICS.includes(m.key) && !hasNumber(data.fact[m.key]),
+  ).map((m) => `fact.${m.key}`),
+  ...MONTHLY_MEASURES.filter((m) => !hasNumber(data.now[m.key])).map((m) => `now.${m.key}`),
+  ...MONTHLY_WELLBEING.filter((w) => !hasText(data.wellbeing[w.key])).map(
+    (w) => `wellbeing.${w.key}`,
+  ),
+  ...MONTHLY_FEEDBACK.filter((f) => !hasText(data.feedback[f.key])).map((f) => `feedback.${f.key}`),
+]
+
+export const REPORT_KINDS = ['WEEKLY', 'MONTHLY'] as const
+export type ReportKind = (typeof REPORT_KINDS)[number]
