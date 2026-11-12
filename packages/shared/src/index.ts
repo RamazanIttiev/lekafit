@@ -352,3 +352,10 @@ export const monthlyMissingFields = (data: MonthlyReportData): string[] => [
 
 export const REPORT_KINDS = ['WEEKLY', 'MONTHLY'] as const
 export type ReportKind = (typeof REPORT_KINDS)[number]
+
+export const PHOTO_ANGLES = [
+  { key: 'front', label: 'Фас' },
+  { key: 'side', label: 'Профиль' },
+  { key: 'back', label: 'Спина' },
+] as const
+export type PhotoAngle = (typeof PHOTO_ANGLES)[number]['key']

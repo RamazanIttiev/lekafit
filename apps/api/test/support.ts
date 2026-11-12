@@ -83,6 +83,9 @@ export const as = (app: INestApplication, user: TelegramUser) => {
       request(server).patch(url).set('Authorization', auth).send(body),
     put: (url: string, body: object) =>
       request(server).put(url).set('Authorization', auth).send(body),
+    upload: (url: string, bytes: Buffer, type = 'image/jpeg') =>
+      request(server).put(url).set('Authorization', auth).set('Content-Type', type).send(bytes),
+    delete: (url: string) => request(server).delete(url).set('Authorization', auth),
   }
 }
 

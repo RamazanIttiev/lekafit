@@ -48,6 +48,8 @@ const aMonthlyReport = (data: object): MonthlyReport => ({
   submittedAt: null,
   seenByCoachAt: null,
   data: monthlyReportDataSchema.parse(data),
+  photos: { front: true, side: true, back: true },
+  prevPhotosReportId: null,
 })
 
 describe('reportSummary for a monthly report', () => {

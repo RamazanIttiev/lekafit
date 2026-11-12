@@ -1,11 +1,26 @@
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Put,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common'
 import { CoachGuard, TelegramAuthGuard } from '../auth/telegram-auth.guard'
+import { PhotosService } from '../reports/photos.service'
 import { CoachService } from './coach.service'
 
 @Controller('coach')
 @UseGuards(TelegramAuthGuard, CoachGuard)
 export class CoachController {
-  constructor(@Inject(CoachService) private readonly coach: CoachService) {}
+  constructor(
+    @Inject(CoachService) private readonly coach: CoachService,
+    @Inject(PhotosService) private readonly photos: PhotosService,
+  ) {}
 
   @Get('invite')
   invite() {
@@ -30,6 +45,13 @@ export class CoachController {
   @Get('clients/:id/reports')
   clientReports(@Param('id', ParseIntPipe) id: number) {
     return this.coach.clientReports(id)
+  }
+
+  @Get('reports/:id/photos/:angle')
+  @Header('Cache-Control', 'private, no-store')
+  async photo(@Param('id', ParseIntPipe) id: number, @Param('angle') angle: string) {
+    const { mime, data } = await this.photos.coachPhoto(id, angle)
+    return new StreamableFile(data, { type: mime })
   }
 
   @Get('reports/:id')

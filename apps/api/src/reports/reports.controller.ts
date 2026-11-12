@@ -1,6 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
+  Header,
+  Headers,
   Get,
   HttpCode,
   Inject,
@@ -8,17 +11,23 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common'
 import { CurrentUser, TelegramAuthGuard } from '../auth/telegram-auth.guard'
 import type { User } from '../users/users.repository'
+import { PhotosService } from './photos.service'
 import { ReportsService } from './reports.service'
 
 @Controller('reports')
 @UseGuards(TelegramAuthGuard)
 export class ReportsController {
-  constructor(@Inject(ReportsService) private readonly reports: ReportsService) {}
+  constructor(
+    @Inject(ReportsService) private readonly reports: ReportsService,
+    @Inject(PhotosService) private readonly photos: PhotosService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: User, @Query('kind') kind?: string) {
@@ -42,6 +51,37 @@ export class ReportsController {
     @Body() body: { data?: unknown },
   ) {
     return this.reports.saveDraft(user.id, id, body.data)
+  }
+
+  @Put(':id/photos/:angle')
+  uploadPhoto(
+    @CurrentUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('angle') angle: string,
+    @Headers('content-type') contentType: string | undefined,
+    @Body() body: unknown,
+  ) {
+    return this.photos.upload({ userId: user.id, id, angle, contentType, body })
+  }
+
+  @Delete(':id/photos/:angle')
+  removePhoto(
+    @CurrentUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('angle') angle: string,
+  ) {
+    return this.photos.remove(user.id, id, angle)
+  }
+
+  @Get(':id/photos/:angle')
+  @Header('Cache-Control', 'private, no-store')
+  async photo(
+    @CurrentUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('angle') angle: string,
+  ) {
+    const { mime, data } = await this.photos.ownPhoto(user.id, id, angle)
+    return new StreamableFile(data, { type: mime })
   }
 
   @Post(':id/submit')

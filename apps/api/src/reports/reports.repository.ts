@@ -1,6 +1,7 @@
 import {
   type MonthlyReportData,
   monthlyReportDataSchema,
+  type PhotoAngle,
   type Plan,
   type ReportData,
   type ReportKind,
@@ -8,9 +9,10 @@ import {
 } from '@lekafit/shared'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IsNull, Not, QueryFailedError, type Repository } from 'typeorm'
+import { IsNull, LessThan, Not, QueryFailedError, type Repository } from 'typeorm'
 import { PlanEntity } from './plan.entity'
 import { ReportEntity } from './report.entity'
+import { ReportPhotoEntity } from './report-photo.entity'
 
 type ReportFields = {
   id: number
@@ -23,7 +25,12 @@ type ReportFields = {
 }
 
 export type WeeklyReport = ReportFields & { kind: 'WEEKLY'; data: ReportData }
-export type MonthlyReport = ReportFields & { kind: 'MONTHLY'; data: MonthlyReportData }
+export type MonthlyReport = ReportFields & {
+  kind: 'MONTHLY'
+  data: MonthlyReportData
+  photos: Record<PhotoAngle, boolean>
+  prevPhotosReportId: number | null
+}
 export type Report = WeeklyReport | MonthlyReport
 
 export type SubmittedSummary = Pick<
@@ -63,7 +70,27 @@ export class ReportsRepository {
   constructor(
     @InjectRepository(ReportEntity) private readonly reports: Repository<ReportEntity>,
     @InjectRepository(PlanEntity) private readonly plans: Repository<PlanEntity>,
+    @InjectRepository(ReportPhotoEntity)
+    private readonly photos: Repository<ReportPhotoEntity>,
   ) {}
+
+  private async photoStatus(reportId: number): Promise<Record<PhotoAngle, boolean>> {
+    const rows = await this.photos.find({ select: { angle: true }, where: { reportId } })
+    const present = new Set(rows.map((r) => r.angle))
+    return {
+      front: present.has('front'),
+      side: present.has('side'),
+      back: present.has('back'),
+    }
+  }
+
+  private async previousMonthlyId(userId: number, before: string): Promise<number | null> {
+    const previous = await this.reports.findOne({
+      where: { userId, kind: 'MONTHLY', submittedAt: Not(IsNull()), weekStart: LessThan(before) },
+      order: { weekStart: 'DESC' },
+    })
+    return previous?.id ?? null
+  }
 
   async planFor(userId: number): Promise<Plan | null> {
     const plan = await this.plans.findOneBy({ userId })
@@ -79,9 +106,15 @@ export class ReportsRepository {
     if (!entity) return null
     const { planSnapshot, data, kind, user: _, updatedAt: __, ...rest } = entity
     const plan = rest.submittedAt ? planSnapshot : await this.planFor(rest.userId)
-    return kind === 'MONTHLY'
-      ? { ...rest, kind, plan, data: monthlyReportDataSchema.parse(data) }
-      : { ...rest, kind, plan, data: reportDataSchema.parse(data) }
+    if (kind === 'WEEKLY') return { ...rest, kind, plan, data: reportDataSchema.parse(data) }
+    return {
+      ...rest,
+      kind,
+      plan,
+      data: monthlyReportDataSchema.parse(data),
+      photos: await this.photoStatus(rest.id),
+      prevPhotosReportId: await this.previousMonthlyId(rest.userId, rest.weekStart),
+    }
   }
 
   async findForPeriod(input: {

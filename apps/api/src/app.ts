@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import { type INestApplication, Module } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CoachGuard, TelegramAuthGuard } from './auth/telegram-auth.guard'
 import { GrammyGateway } from './bot/bot'
@@ -11,6 +12,8 @@ import { CoachService } from './coach/coach.service'
 import { type AppConfig, CONFIG } from './config'
 import { dataSourceOptions, entities } from './data-source'
 import { MeController } from './me.controller'
+import { PhotosRepository } from './reports/photos.repository'
+import { MAX_PHOTO_BYTES, PHOTO_TYPES, PhotosService } from './reports/photos.service'
 import { ReportsController } from './reports/reports.controller'
 import { type Report, ReportsRepository } from './reports/reports.repository'
 import { REPORT_SUBMITTED, ReportsService } from './reports/reports.service'
@@ -39,6 +42,8 @@ export const createApp = async (
       CoachGuard,
       ReportsRepository,
       ReportsService,
+      PhotosRepository,
+      PhotosService,
       CoachService,
       CoachNotifier,
       overrides.telegram
@@ -54,7 +59,10 @@ export const createApp = async (
   })
   class AppModule {}
 
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] })
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn'],
+  })
+  app.useBodyParser('raw', { type: PHOTO_TYPES, limit: MAX_PHOTO_BYTES })
   app.enableShutdownHooks()
   return app
 }
