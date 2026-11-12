@@ -15,7 +15,7 @@ gets a Telegram message with a summary and a button to open the full report.
 - **Client**: `/start` in the bot → "📋 Недельный отчёт". The report week is the
   week containing _today − 3 days_, so Mon–Wed opens last week and Thu–Sun this week.
   "Было" measurements are prefilled from the last sent report. Sent reports are locked.
-- **Coach**: the Telegram account with id `COACH_TELEGRAM_ID` sees the coach view:
+- **Coach**: Telegram accounts whose ids are listed in `COACH_TELEGRAM_IDS` (comma-separated) see the coach view:
   clients (unreviewed first), per-client plan editor, progress table, report history.
   Opening a report marks it reviewed.
 - **Auth**: every API call carries Telegram `initData` (`Authorization: tma …`),
@@ -34,7 +34,7 @@ Run locally (bot disabled):
 
 ```bash
 cd apps/api && DATABASE_URL=postgres://lekafit:lekafit@localhost:5433/lekafit \
-  BOT_TOKEN=123456:dev COACH_TELEGRAM_ID=1000 WEBAPP_URL=http://localhost:5173 \
+  BOT_TOKEN=123456:dev COACH_TELEGRAM_IDS=1000 WEBAPP_URL=http://localhost:5173 \
   START_BOT=false pnpm dev
 ```
 
@@ -53,7 +53,7 @@ Mutation testing: `pnpm --filter @lekafit/shared mutate`, or `npx stryker run` i
 1. Create the bot in @BotFather, copy the token. Point a domain's A record at the VPS.
 2. Get the coach's numeric Telegram id (e.g. via @userinfobot).
 3. On the server: `cp .env.example .env`, then fill in `DOMAIN`, `POSTGRES_PASSWORD`,
-   `BOT_TOKEN` and `COACH_TELEGRAM_ID`.
+   `BOT_TOKEN` and `COACH_TELEGRAM_IDS`.
 4. Start everything:
 
    ```bash

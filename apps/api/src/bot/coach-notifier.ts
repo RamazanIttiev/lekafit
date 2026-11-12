@@ -19,14 +19,16 @@ export class CoachNotifier {
     try {
       const client = await this.users.findById(report.userId)
       if (!client) return
-      await this.telegram.send({
-        chatId: this.config.coachTelegramId,
+      const message = {
         text: reportSummary(report, client),
         webAppButton: {
           text: 'Открыть отчёт',
           url: `${this.config.webAppUrl}/?report=${report.id}`,
         },
-      })
+      }
+      await Promise.all(
+        this.config.coachTelegramIds.map((chatId) => this.telegram.send({ chatId, ...message })),
+      )
     } catch (error) {
       this.logger.error(`Coach notification failed for report ${report.id}: ${String(error)}`)
     }

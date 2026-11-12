@@ -14,7 +14,7 @@ export const COACH_ID = 1000
 export const testConfig = (overrides: Partial<AppConfig> = {}): AppConfig => ({
   databaseUrl: process.env.DATABASE_URL ?? '',
   botToken: BOT_TOKEN,
-  coachTelegramId: COACH_ID,
+  coachTelegramIds: [COACH_ID],
   webAppUrl: 'https://example.test',
   startBot: false,
   now: () => new Date(2026, 10, 13, 12),

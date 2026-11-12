@@ -22,7 +22,7 @@ export class UsersService {
       firstName: profile.firstName,
       lastName: profile.lastName ?? null,
       username: profile.username ?? null,
-      role: profile.id === this.config.coachTelegramId ? 'COACH' : 'CLIENT',
+      role: this.config.coachTelegramIds.includes(profile.id) ? 'COACH' : 'CLIENT',
     })
   }
 }

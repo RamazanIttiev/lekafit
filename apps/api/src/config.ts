@@ -5,7 +5,7 @@ export const CONFIG = Symbol('CONFIG')
 export type AppConfig = {
   databaseUrl: string
   botToken: string
-  coachTelegramId: number
+  coachTelegramIds: number[]
   webAppUrl: string
   startBot: boolean
   now: () => Date
@@ -14,7 +14,16 @@ export type AppConfig = {
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   BOT_TOKEN: z.string().min(10),
-  COACH_TELEGRAM_ID: z.coerce.number().int().positive(),
+  COACH_TELEGRAM_IDS: z
+    .string()
+    .transform((value) =>
+      value
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id !== '')
+        .map(Number),
+    )
+    .pipe(z.array(z.number().int().positive()).min(1)),
   WEBAPP_URL: z.string().url(),
   PORT: z.coerce.number().int().default(3000),
   START_BOT: z.enum(['true', 'false']).default('true'),
@@ -27,7 +36,7 @@ export const configFromEnv = (env: NodeJS.ProcessEnv) => {
     config: {
       databaseUrl: parsed.DATABASE_URL,
       botToken: parsed.BOT_TOKEN,
-      coachTelegramId: parsed.COACH_TELEGRAM_ID,
+      coachTelegramIds: parsed.COACH_TELEGRAM_IDS,
       webAppUrl: parsed.WEBAPP_URL,
       startBot: parsed.START_BOT === 'true',
       now: () => new Date(),

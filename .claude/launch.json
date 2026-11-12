@@ -9,7 +9,7 @@
       "env": {
         "DATABASE_URL": "postgres://lekafit:lekafit@localhost:5433/lekafit",
         "BOT_TOKEN": "123456:LOCAL-DEV-TOKEN",
-        "COACH_TELEGRAM_ID": "1000",
+        "COACH_TELEGRAM_IDS": "1000",
         "WEBAPP_URL": "http://localhost:5173",
         "START_BOT": "false"
       }
