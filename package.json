@@ -6,7 +6,10 @@
     "check": "biome check . && pnpm -r typecheck && pnpm -r test",
     "test": "pnpm -r test",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "migration:generate": "pnpm --filter @lekafit/api migration:generate",
+    "migration:run": "pnpm --filter @lekafit/api migration:run",
+    "migration:revert": "pnpm --filter @lekafit/api migration:revert"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

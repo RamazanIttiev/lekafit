@@ -8,9 +8,9 @@
     "start": "tsx src/main.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "migration:generate": "tsx node_modules/typeorm/cli.js migration:generate -d src/cli-data-source.ts",
-    "migration:run": "tsx node_modules/typeorm/cli.js migration:run -d src/cli-data-source.ts",
-    "migration:revert": "tsx node_modules/typeorm/cli.js migration:revert -d src/cli-data-source.ts"
+    "migration:generate": "tsx --env-file-if-exists=../../.env node_modules/typeorm/cli.js migration:generate -d src/cli-data-source.ts",
+    "migration:run": "tsx --env-file-if-exists=../../.env node_modules/typeorm/cli.js migration:run -d src/cli-data-source.ts",
+    "migration:revert": "tsx --env-file-if-exists=../../.env node_modules/typeorm/cli.js migration:revert -d src/cli-data-source.ts"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

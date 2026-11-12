@@ -11,8 +11,9 @@
 
 ## Database (TypeORM via @nestjs/typeorm)
 
-- Schema changes: edit the entity, then in `apps/api` run
-  `DATABASE_URL=… pnpm migration:generate src/migrations/<Name>` against a database at the current schema,
+- Schema changes: edit the entity, then from the repo root run
+  `pnpm migration:generate src/migrations/<Name>` (path is relative to `apps/api`) against a database at the current schema.
+  `migration:run` / `migration:revert` work the same way. They read `DATABASE_URL` from the root `.env`; a `DATABASE_URL` set in the shell wins.
   Files in `src/migrations/` are picked up automatically (glob in `src/data-source.ts`) and run on app start.
 - Never use `synchronize: true`.
 
