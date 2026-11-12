@@ -1,18 +1,17 @@
 import { Card, Table } from '@heroui/react'
-import { formatDelta, parseNumber } from '@lekafit/shared'
-import type { MonthlyReport } from './api'
-import { monthName } from './format'
+import type { WeeklyReport } from '../api'
+import { shortDate } from '../lib/format'
 
-const COLUMNS = ['Месяц', 'Вес', 'Δ от старта', 'Талия'] as const
+const COLUMNS = ['Неделя', 'Вес', 'Талия', 'Ккал', 'Шаги'] as const
 
-export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
+export const Dynamics = ({ reports }: { reports: WeeklyReport[] }) => (
   <Card>
     <Card.Header>
-      <Card.Title>Динамика по месяцам</Card.Title>
+      <Card.Title>Динамика</Card.Title>
     </Card.Header>
     <Table className="bg-transparent shadow-none [&_.table__cell]:bg-transparent [&_.table__header]:bg-transparent [&_.table__column]:bg-transparent [&_.table__row]:bg-transparent [&_.table__body]:bg-transparent">
       <Table.ScrollContainer>
-        <Table.Content aria-label="Динамика по месяцам">
+        <Table.Content aria-label="Динамика">
           <Table.Header className="bg-transparent">
             {COLUMNS.map((c, i) => (
               <Table.Column key={c} isRowHeader={i === 0}>
@@ -23,16 +22,11 @@ export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
           <Table.Body>
             {reports.map((r) => (
               <Table.Row key={r.id} className="[&_.table__cell]:bg-transparent!">
-                <Table.Cell>{monthName(r.weekStart)}</Table.Cell>
+                <Table.Cell>{shortDate(r.weekStart)}</Table.Cell>
                 <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
-                <Table.Cell>
-                  {formatDelta({
-                    from: parseNumber(r.data.baseline.weight),
-                    to: parseNumber(r.data.now.weight),
-                    unit: 'кг',
-                  })}
-                </Table.Cell>
                 <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>
+                <Table.Cell>{r.data.fact.cal || '—'}</Table.Cell>
+                <Table.Cell>{r.data.fact.steps || '—'}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>

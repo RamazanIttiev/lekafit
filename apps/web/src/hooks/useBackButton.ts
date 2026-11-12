@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { BackButton } from './telegram'
+import type { BackButton } from '../telegram'
 
 export const useBackButton = (backButton: BackButton, onBack: (() => void) | null) => {
   useEffect(() => {

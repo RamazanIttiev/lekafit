@@ -3,7 +3,8 @@ import { render } from 'vitest-browser-react'
 import { aPlan, aReport, dataWith } from '../test/fakeApi'
 import { fakeBackButton } from '../test/fakeBackButton'
 import { aListItem, fakeCoachApi } from '../test/fakeCoachApi'
-import { CoachApp, routeFromLocation } from './CoachApp'
+import { CoachApp } from './CoachApp'
+import { routeFromLocation } from './route'
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initialRoute = '#/') => {
   const fake = fakeCoachApi(setup)

@@ -1,7 +1,7 @@
 import { Card, Input, Label, ListBox, Select, Tabs, TextArea, TextField } from '@heroui/react'
 import { completionPercent, formatDelta, parseNumber, type Unit } from '@lekafit/shared'
 import type { ReactNode } from 'react'
-import { plainNumber } from '../format'
+import { plainNumber } from '../lib/format'
 
 export const Section = ({
   title,

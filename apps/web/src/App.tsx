@@ -1,9 +1,9 @@
 import { Alert } from '@heroui/react'
 import { useEffect, useState } from 'react'
 import type { Api, CoachApi, Me } from './api'
-import { CenteredSpinner } from './CenteredSpinner'
 import { ClientApp } from './client/ClientApp'
 import { CoachApp } from './coach/CoachApp'
+import { CenteredSpinner } from './components/CenteredSpinner'
 import type { BackButton } from './telegram'
 
 type Props = {
