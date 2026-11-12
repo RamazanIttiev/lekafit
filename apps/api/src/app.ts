@@ -12,6 +12,7 @@ import { CoachService } from './coach/coach.service'
 import { type AppConfig, CONFIG } from './config'
 import { dataSourceOptions, entities } from './data-source'
 import { MeController } from './me.controller'
+import { PhotoDownloadsController } from './reports/photo-downloads.controller'
 import { PhotosRepository } from './reports/photos.repository'
 import { MAX_PHOTO_BYTES, PHOTO_TYPES, PhotosService } from './reports/photos.service'
 import { ReportsController } from './reports/reports.controller'
@@ -33,7 +34,7 @@ export const createApp = async (
       TypeOrmModule.forRoot(dataSourceOptions(config.databaseUrl)),
       TypeOrmModule.forFeature(entities),
     ],
-    controllers: [MeController, ReportsController, CoachController],
+    controllers: [MeController, ReportsController, CoachController, PhotoDownloadsController],
     providers: [
       { provide: CONFIG, useValue: config },
       UsersRepository,

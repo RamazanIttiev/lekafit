@@ -3,9 +3,11 @@ import {
   Controller,
   Get,
   Header,
+  HttpCode,
   Inject,
   Param,
   ParseIntPipe,
+  Post,
   Put,
   StreamableFile,
   UseGuards,
@@ -52,6 +54,12 @@ export class CoachController {
   async photo(@Param('id', ParseIntPipe) id: number, @Param('angle') angle: string) {
     const { mime, data } = await this.photos.coachPhoto(id, angle)
     return new StreamableFile(data, { type: mime })
+  }
+
+  @Post('reports/:id/photos/:angle/link')
+  @HttpCode(200)
+  photoLink(@Param('id', ParseIntPipe) id: number, @Param('angle') angle: string) {
+    return this.photos.coachDownloadLink(id, angle)
   }
 
   @Get('reports/:id')

@@ -16,6 +16,7 @@ export const fakeCoachApi = (options: {
   reports?: Report[]
 }) => {
   const savedPlans: Plan[] = []
+  const photoRequests: [number, string][] = []
   const profile = options.profile ?? {
     id: 1,
     firstName: 'Анна',
@@ -33,11 +34,19 @@ export const fakeCoachApi = (options: {
     },
     clientReports: async () => reports,
     invite: async () => ({ url: 'https://t.me/lekafit_bot' }),
+    photoDownloadLink: async (id, angle) => ({
+      url: `https://example.test/api/photo-downloads/${id}-${angle}`,
+      fileName: `LekaFit_Анна_Иванова_2026-11_${angle}.jpg`,
+    }),
+    photo: async (id, angle) => {
+      photoRequests.push([id, angle])
+      return new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' })
+    },
     report: async (id) => {
       const found = reports.find((r) => r.id === id)
       if (!found) throw new Error('not found')
       return { ...found, client: profile }
     },
   }
-  return { api, savedPlans }
+  return { api, savedPlans, photoRequests }
 }

@@ -1,4 +1,4 @@
-import { PHOTO_ANGLES, type PhotoAngle } from '@lekafit/shared'
+import { PHOTO_ANGLES, type PhotoAngle, photoFileName } from '@lekafit/shared'
 import {
   BadRequestException,
   ConflictException,
@@ -6,6 +6,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
+import { type AppConfig, CONFIG } from '../config'
+import { UsersRepository } from '../users/users.repository'
+import {
+  DOWNLOAD_LINK_TTL_MS,
+  downloadSecret,
+  signDownload,
+  verifyDownload,
+} from './photo-download-token'
 import { type Photo, PhotosRepository } from './photos.repository'
 import { type Report, ReportsRepository } from './reports.repository'
 import { ReportsService } from './reports.service'
@@ -39,7 +47,13 @@ export class PhotosService {
     @Inject(ReportsService) private readonly reportsService: ReportsService,
     @Inject(ReportsRepository) private readonly reports: ReportsRepository,
     @Inject(PhotosRepository) private readonly photos: PhotosRepository,
+    @Inject(UsersRepository) private readonly users: UsersRepository,
+    @Inject(CONFIG) private readonly config: AppConfig,
   ) {}
+
+  private get secret() {
+    return downloadSecret(this.config.botToken)
+  }
 
   private async editableMonthly(userId: number, id: number): Promise<Report> {
     const report = await this.reportsService.own(userId, id)
@@ -80,5 +94,45 @@ export class PhotosService {
     const report = await this.reports.findById(id)
     if (!report?.submittedAt) throw new NotFoundException()
     return found(await this.photos.find(id, angle))
+  }
+
+  async coachDownloadLink(
+    id: number,
+    angleText: string,
+  ): Promise<{ url: string; fileName: string }> {
+    const angle = parseAngle(angleText)
+    const { fileName } = await this.downloadable({ reportId: id, angle })
+    const token = signDownload({
+      secret: this.secret,
+      target: { reportId: id, angle },
+      expiresAt: this.config.now().getTime() + DOWNLOAD_LINK_TTL_MS,
+    })
+    return { url: `${this.config.webAppUrl}/api/photo-downloads/${token}`, fileName }
+  }
+
+  async download(token: string): Promise<{ photo: Photo; fileName: string }> {
+    const target = verifyDownload({ secret: this.secret, token, now: this.config.now().getTime() })
+    if (!target) throw new NotFoundException()
+    return this.downloadable(target)
+  }
+
+  private async downloadable(target: {
+    reportId: number
+    angle: PhotoAngle
+  }): Promise<{ photo: Photo; fileName: string }> {
+    const report = await this.reports.findById(target.reportId)
+    if (!report?.submittedAt) throw new NotFoundException()
+    const photo = found(await this.photos.find(target.reportId, target.angle))
+    const client = await this.users.findById(report.userId)
+    const clientName = [client?.firstName, client?.lastName].filter(Boolean).join(' ')
+    return {
+      photo,
+      fileName: photoFileName({
+        clientName,
+        monthStart: report.weekStart,
+        angle: target.angle,
+        mime: photo.mime,
+      }),
+    }
   }
 }

@@ -7,15 +7,17 @@ import { CoachApp } from './CoachApp'
 
 const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0], initialRoute: string) => {
   const fake = fakeCoachApi(setup)
+  const downloads: { url: string; fileName: string }[] = []
   const screen = await render(
     <CoachApp
       api={fake.api}
       initialRoute={initialRoute}
       backButton={fakeBackButton().backButton}
       share={() => undefined}
+      download={(url, fileName) => downloads.push({ url, fileName })}
     />,
   )
-  return { ...fake, screen }
+  return { ...fake, downloads, screen }
 }
 
 const profile = { id: 1, firstName: 'Анна', lastName: 'Иванова', username: null, plan: aPlan() }
@@ -66,5 +68,65 @@ describe('coach: monthly reports', () => {
     await expect
       .element(screen.getByLabelText('Вопросы к тренеру и пожелания на следующий месяц'))
       .toHaveValue('Можно больше кардио?')
+  })
+})
+
+describe('coach: monthly photos', () => {
+  const withPhotos = aMonthlyReport({
+    id: 21,
+    weekStart: '2026-11-01',
+    submittedAt: submitted,
+    photos: { front: true, side: true, back: false },
+    prevPhotosReportId: 11,
+  })
+
+  it('shows this month next to last month for each angle', async () => {
+    const { screen, photoRequests } = await renderCoach(
+      { profile, reports: [withPhotos] },
+      '#/coach/reports/21',
+    )
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
+    await expect.element(screen.getByRole('img', { name: 'Фас — прошлый месяц' })).toBeVisible()
+    await expect.poll(() => photoRequests).toContainEqual([11, 'front'])
+    expect(photoRequests).toContainEqual([21, 'front'])
+  })
+
+  it('shows photos read-only', async () => {
+    const { screen } = await renderCoach({ profile, reports: [withPhotos] }, '#/coach/reports/21')
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect.element(screen.getByRole('img', { name: 'Фас — этот месяц' })).toBeVisible()
+    await expect.element(screen.getByLabelText('Выбрать фото: Фас')).not.toBeInTheDocument()
+    await expect
+      .element(screen.getByRole('button', { name: 'Удалить фото: Фас' }))
+      .not.toBeInTheDocument()
+  })
+
+  it('hands Telegram a download link for the photo, named by the server', async () => {
+    const { screen, downloads } = await renderCoach(
+      { profile, reports: [withPhotos] },
+      '#/coach/reports/21',
+    )
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByRole('button', { name: 'Скачать фото: Профиль' }).click()
+    await expect
+      .poll(() => downloads)
+      .toEqual([
+        {
+          url: 'https://example.test/api/photo-downloads/21-side',
+          fileName: 'LekaFit_Анна_Иванова_2026-11_side.jpg',
+        },
+      ])
+  })
+
+  it('offers no download for a missing photo', async () => {
+    const { screen } = await renderCoach({ profile, reports: [withPhotos] }, '#/coach/reports/21')
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect
+      .element(screen.getByRole('button', { name: 'Скачать фото: Профиль' }))
+      .toBeVisible()
+    await expect
+      .element(screen.getByRole('button', { name: 'Скачать фото: Спина' }))
+      .not.toBeInTheDocument()
   })
 })

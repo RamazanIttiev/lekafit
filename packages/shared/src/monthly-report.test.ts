@@ -8,6 +8,7 @@ import {
   monthlyReportDataSchema,
   monthName,
   monthRange,
+  photoFileName,
 } from './index'
 
 const filled = () =>
@@ -111,5 +112,30 @@ describe('missingPhotos', () => {
 
   it('is empty when all three are there', () => {
     expect(missingPhotos({ front: true, side: true, back: true })).toEqual([])
+  })
+})
+
+describe('photoFileName', () => {
+  const base = { clientName: 'Анна  Иванова', monthStart: '2026-11-01', angle: 'side' as const }
+
+  it('joins client, month and angle with underscores', () => {
+    expect(photoFileName({ ...base, mime: 'image/jpeg' })).toBe(
+      'LekaFit_Анна_Иванова_2026-11_side.jpg',
+    )
+  })
+
+  it('uses the extension of the image type', () => {
+    expect(photoFileName({ ...base, mime: 'image/png' })).toBe(
+      'LekaFit_Анна_Иванова_2026-11_side.png',
+    )
+    expect(photoFileName({ ...base, mime: 'image/webp' })).toBe(
+      'LekaFit_Анна_Иванова_2026-11_side.webp',
+    )
+  })
+
+  it('leaves the name out when there is none', () => {
+    expect(photoFileName({ ...base, clientName: ' ', mime: 'image/jpeg' })).toBe(
+      'LekaFit_2026-11_side.jpg',
+    )
   })
 })

@@ -6,7 +6,12 @@ import { blobClient, createApi, createCoachApi, httpClient } from './api'
 import { routeFromLocation } from './coach/route'
 import { ensureTelegramLaunchParams } from './lib/ensure-telegram-launch-params'
 import { initTma } from './lib/tma-sdk'
-import { confirmWithTelegram, sdkBackButton, shareWithTelegram } from './telegram'
+import {
+  confirmWithTelegram,
+  downloadWithTelegram,
+  sdkBackButton,
+  shareWithTelegram,
+} from './telegram'
 import './index.css'
 
 const root = document.getElementById('root')
@@ -29,11 +34,12 @@ const start = async (container: HTMLElement) => {
     <StrictMode>
       <App
         api={createApi(request, fetchBlob)}
-        coachApi={createCoachApi(request)}
+        coachApi={createCoachApi(request, fetchBlob)}
         confirm={confirmWithTelegram}
         initialRoute={routeFromLocation(window.location)}
         backButton={sdkBackButton}
         share={shareWithTelegram}
+        download={downloadWithTelegram}
       />
     </StrictMode>,
   )

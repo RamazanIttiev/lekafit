@@ -362,3 +362,21 @@ export type PhotoAngle = (typeof PHOTO_ANGLES)[number]['key']
 
 export const missingPhotos = (photos: Record<PhotoAngle, boolean>): string[] =>
   PHOTO_ANGLES.filter((a) => !photos[a.key]).map((a) => `photos.${a.key}`)
+
+const PHOTO_EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp' }
+
+export const photoFileName = ({
+  clientName,
+  monthStart,
+  angle,
+  mime,
+}: {
+  clientName: string
+  monthStart: string
+  angle: PhotoAngle
+  mime: string
+}): string => {
+  const name = clientName.trim().replace(/\s+/g, '_')
+  const parts = ['LekaFit', ...(name ? [name] : []), monthStart.slice(0, 7), angle]
+  return `${parts.join('_')}.${PHOTO_EXTENSIONS[mime] ?? 'jpg'}`
+}

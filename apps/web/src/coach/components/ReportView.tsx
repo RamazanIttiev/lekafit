@@ -3,6 +3,7 @@ import type { CoachApi, CoachReport } from '../../api'
 import { CenteredSpinner } from '../../components/CenteredSpinner'
 import { useBackButton } from '../../hooks/useBackButton'
 import { MonthlyReportForm } from '../../report/MonthlyReportForm'
+import { PhotoSlots } from '../../report/PhotoSlots'
 import { ReportForm } from '../../report/ReportForm'
 import type { BackButton } from '../../telegram'
 import { fullName, reportTitle } from '../labels'
@@ -14,11 +15,13 @@ export const ReportView = ({
   id,
   backButton,
   go,
+  download,
 }: {
   api: CoachApi
   id: number
   backButton: BackButton
   go: (r: Route) => void
+  download: (url: string, fileName: string) => void
 }) => {
   const { value: report, error } = useLoad<CoachReport>(
     useCallback(() => api.report(id), [api, id]),
@@ -47,6 +50,19 @@ export const ReportView = ({
           plan={report.plan}
           readOnly
           onChange={() => undefined}
+          photos={
+            <PhotoSlots
+              reportId={report.id}
+              photos={report.photos}
+              prevReportId={report.prevPhotosReportId}
+              load={api.photo}
+              readOnly
+              onDownload={async (angle) => {
+                const { url, fileName } = await api.photoDownloadLink(report.id, angle)
+                download(url, fileName)
+              }}
+            />
+          }
         />
       )}
     </>

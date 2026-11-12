@@ -12,11 +12,13 @@ export const CoachApp = ({
   initialRoute,
   backButton,
   share,
+  download,
 }: {
   api: CoachApi
   initialRoute: string
   backButton: BackButton
   share: (url: string, text: string) => void
+  download: (url: string, fileName: string) => void
 }) => {
   const [route, setRoute] = useState<Route>(parseRoute(initialRoute))
   const toClients = useCallback(() => setRoute({ name: 'clients' }), [])
@@ -26,7 +28,14 @@ export const CoachApp = ({
       {route.name === 'clients' && <Clients api={api} go={setRoute} share={share} />}
       {route.name === 'client' && <Client key={route.id} api={api} id={route.id} go={setRoute} />}
       {route.name === 'report' && (
-        <ReportView key={route.id} api={api} id={route.id} backButton={backButton} go={setRoute} />
+        <ReportView
+          key={route.id}
+          api={api}
+          id={route.id}
+          backButton={backButton}
+          go={setRoute}
+          download={download}
+        />
       )}
     </main>
   )

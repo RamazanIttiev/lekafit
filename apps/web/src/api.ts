@@ -78,6 +78,8 @@ export type CoachApi = {
   clientReports: (id: number) => Promise<Report[]>
   report: (id: number) => Promise<CoachReport>
   invite: () => Promise<{ url: string }>
+  photo: (id: number, angle: PhotoAngle) => Promise<Blob>
+  photoDownloadLink: (id: number, angle: PhotoAngle) => Promise<{ url: string; fileName: string }>
 }
 
 export type Api = {
@@ -165,7 +167,7 @@ export const createApi = (request: Request, fetchBlob: FetchBlob): Api => ({
   photo: (id, angle) => fetchBlob(`/reports/${id}/photos/${angle}`),
 })
 
-export const createCoachApi = (request: Request): CoachApi => ({
+export const createCoachApi = (request: Request, fetchBlob: FetchBlob): CoachApi => ({
   clients: () => request('/coach/clients', z.array(clientListItemSchema)),
   client: (id) => request(`/coach/clients/${id}`, clientProfileSchema),
   setPlan: (id, plan) =>
@@ -173,4 +175,11 @@ export const createCoachApi = (request: Request): CoachApi => ({
   clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
   report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
   invite: () => request('/coach/invite', z.object({ url: z.string() })),
+  photo: (id, angle) => fetchBlob(`/coach/reports/${id}/photos/${angle}`),
+  photoDownloadLink: (id, angle) =>
+    request(
+      `/coach/reports/${id}/photos/${angle}/link`,
+      z.object({ url: z.string(), fileName: z.string() }),
+      { method: 'POST' },
+    ),
 })

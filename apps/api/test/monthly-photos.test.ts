@@ -1,3 +1,4 @@
+import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { aClient, as, resetDatabase, startApp, type TelegramUser, theCoach } from './support'
 
@@ -251,5 +252,87 @@ describe('coach access to photos', () => {
     await as(app, theCoach())
       .get(`/coach${photoUrl(999999, 'front')}`)
       .expect(404)
+  })
+})
+
+describe('coach photo download links', () => {
+  const sentWithPhotos = async (client: TelegramUser) => {
+    const id = await monthlyDraft(client)
+    await uploadAll(client, id)
+    await as(app, client).post(`/reports/${id}/submit`).expect(200)
+    return id
+  }
+
+  const linkFor = async (id: number, angle: string) => {
+    const res = await as(app, theCoach())
+      .post(`/coach/reports/${id}/photos/${angle}/link`)
+      .expect(200)
+    return res.body.url as string
+  }
+
+  it('names the file after the client, month and angle', async () => {
+    const id = await sentWithPhotos(aClient({ first_name: 'Анна', last_name: 'Иванова' }))
+    const res = await as(app, theCoach()).post(`/coach/reports/${id}/photos/back/link`).expect(200)
+    expect(res.body.fileName).toBe('LekaFit_Анна_Иванова_2026-11_back.jpg')
+  })
+
+  const pathOf = (url: string) => url.replace('https://example.test/api', '')
+
+  it('gives the coach a link that downloads the photo without signing in', async () => {
+    const id = await sentWithPhotos(aClient({ first_name: 'Анна', last_name: 'Иванова' }))
+    const url = await linkFor(id, 'side')
+    expect(url.startsWith('https://example.test/api/photo-downloads/')).toBe(true)
+    const res = await request(app.getHttpServer()).get(pathOf(url)).buffer(true).expect(200)
+    expect(Buffer.compare(res.body, jpeg('now-side'))).toBe(0)
+    expect(res.headers['content-type']).toBe('image/jpeg')
+    expect(res.headers['cache-control']).toBe('private, no-store')
+    expect(res.headers['content-disposition']).toBe(
+      `attachment; filename="LekaFit_2026-11_side.jpg"; filename*=UTF-8''${encodeURIComponent('LekaFit_Анна_Иванова_2026-11_side.jpg')}`,
+    )
+  })
+
+  it('stops working after five minutes', async () => {
+    const id = await sentWithPhotos(aClient())
+    const url = await linkFor(id, 'front')
+    const later = await appAt(new Date(2026, 10, 12, 9, 5, 1))
+    await request(later.getHttpServer()).get(pathOf(url)).expect(404)
+    await later.close()
+  })
+
+  it('still works at exactly five minutes', async () => {
+    const id = await sentWithPhotos(aClient())
+    const url = await linkFor(id, 'front')
+    const later = await appAt(new Date(2026, 10, 12, 9, 5, 0))
+    await request(later.getHttpServer()).get(pathOf(url)).expect(200)
+    await later.close()
+  })
+
+  it('rejects a link that was tampered with', async () => {
+    const id = await sentWithPhotos(aClient())
+    const url = await linkFor(id, 'front')
+    const [payload, signature] = pathOf(url).replace('/photo-downloads/', '').split('.')
+    const otherAngle = Buffer.from(
+      Buffer.from(payload ?? '', 'base64url')
+        .toString()
+        .replace('front', 'back'),
+    ).toString('base64url')
+    await request(app.getHttpServer())
+      .get(`/photo-downloads/${otherAngle}.${signature}`)
+      .expect(404)
+    await request(app.getHttpServer()).get('/photo-downloads/garbage').expect(404)
+  })
+
+  it('only gives links to the coach, and only for sent reports', async () => {
+    const client = aClient()
+    const id = await monthlyDraft(client)
+    await uploadAll(client, id)
+    await as(app, client).post(`/coach/reports/${id}/photos/front/link`).expect(403)
+    await as(app, theCoach()).post(`/coach/reports/${id}/photos/front/link`).expect(404)
+  })
+
+  it('rejects unknown angles and reports', async () => {
+    const id = await sentWithPhotos(aClient())
+    await as(app, theCoach()).post(`/coach/reports/${id}/photos/top/link`).expect(400)
+    await as(app, theCoach()).post('/coach/reports/999999/photos/front/link').expect(404)
   })
 })

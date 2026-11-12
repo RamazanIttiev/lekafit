@@ -1,4 +1,11 @@
-import { backButton, hapticFeedback, openTelegramLink, popup } from '@tma.js/sdk-react'
+import {
+  backButton,
+  downloadFile,
+  hapticFeedback,
+  openLink,
+  openTelegramLink,
+  popup,
+} from '@tma.js/sdk-react'
 
 export type BackButton = {
   show: () => void
@@ -30,4 +37,17 @@ export const shareWithTelegram = (url: string, text: string) => {
 export const hapticSuccess = () => {
   if (hapticFeedback.notificationOccurred.isAvailable())
     hapticFeedback.notificationOccurred('success')
+}
+
+export const downloadWithTelegram = (url: string, fileName: string) => {
+  if (downloadFile.isAvailable()) {
+    downloadFile(url, fileName).catch(() => openInBrowser(url))
+    return
+  }
+  openInBrowser(url)
+}
+
+const openInBrowser = (url: string) => {
+  if (openLink.isAvailable()) openLink(url)
+  else window.open(url, '_blank')
 }

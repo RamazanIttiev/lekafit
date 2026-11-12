@@ -16,6 +16,7 @@ const renderCoach = async (setup: Parameters<typeof fakeCoachApi>[0] = {}, initi
       initialRoute={initialRoute}
       backButton={back.backButton}
       share={(url, text) => shared.push({ url, text })}
+      download={() => undefined}
     />,
   )
   return { ...fake, back, screen, shared }

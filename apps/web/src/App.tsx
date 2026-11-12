@@ -13,9 +13,18 @@ type Props = {
   initialRoute: string
   backButton: BackButton
   share: (url: string, text: string) => void
+  download: (url: string, fileName: string) => void
 }
 
-export const App = ({ api, coachApi, confirm, initialRoute, backButton, share }: Props) => {
+export const App = ({
+  api,
+  coachApi,
+  confirm,
+  initialRoute,
+  backButton,
+  share,
+  download,
+}: Props) => {
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +43,13 @@ export const App = ({ api, coachApi, confirm, initialRoute, backButton, share }:
   if (!me) return <CenteredSpinner />
   if (me.role === 'COACH')
     return (
-      <CoachApp api={coachApi} initialRoute={initialRoute} backButton={backButton} share={share} />
+      <CoachApp
+        api={coachApi}
+        initialRoute={initialRoute}
+        backButton={backButton}
+        share={share}
+        download={download}
+      />
     )
   return <ClientApp api={api} confirm={confirm} />
 }

@@ -13,6 +13,7 @@ export type PhotoSlotsProps = {
   isInvalid?: (path: string) => boolean
   onPick?: (angle: PhotoAngle, file: File) => Promise<void>
   onRemove?: (angle: PhotoAngle) => Promise<void>
+  onDownload?: (angle: PhotoAngle) => Promise<void>
 }
 
 const frame =
@@ -159,6 +160,19 @@ const Slot = ({
             </Button>
           )}
         </div>
+      )}
+      {present && props.onDownload && (
+        <Button
+          variant="secondary"
+          aria-label={`Скачать фото: ${label}`}
+          isDisabled={busy}
+          onPress={() => {
+            const { onDownload } = props
+            if (onDownload) run(() => onDownload(angle))
+          }}
+        >
+          Скачать
+        </Button>
       )}
       {error && <Card.Description className="text-danger">{error}</Card.Description>}
     </div>

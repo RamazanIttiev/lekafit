@@ -27,6 +27,7 @@ const renderAs = async (role: 'CLIENT' | 'COACH') => {
       initialRoute="#/"
       backButton={fakeBackButton().backButton}
       share={vi.fn()}
+      download={vi.fn()}
     />,
   )
 }
