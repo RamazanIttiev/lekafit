@@ -76,11 +76,29 @@ describe('monthly report', () => {
   it('sends a complete monthly report without cardio', async () => {
     const data = filledMonthlyData()
     const { screen, state } = await renderMonthly({
-      monthly: aMonthlyReport({ data: { ...data, fact: { ...data.fact, cardio: '' } } }),
+      monthly: aMonthlyReport({
+        data: { ...data, fact: { ...data.fact, cardio: '' } },
+        photos: { front: true, side: true, back: true },
+      }),
     })
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
     expect(state.monthly.submittedAt).not.toBeNull()
+  })
+
+  it('refuses to send while a photo is missing', async () => {
+    const { screen, confirm, state } = await renderMonthly({
+      monthly: aMonthlyReport({
+        data: filledMonthlyData(),
+        photos: { front: true, side: false, back: true },
+      }),
+    })
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect
+      .element(screen.getByText('Заполните все поля, чтобы отправить отчёт'))
+      .toBeVisible()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(state.monthly.submittedAt).toBeNull()
   })
 
   it('refuses to send while a monthly field is empty', async () => {

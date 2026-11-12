@@ -38,7 +38,10 @@ const aReport = (
   data: reportDataSchema.parse(overrides.data ?? {}),
 })
 
-const aMonthlyReport = (data: object): MonthlyReport => ({
+const aMonthlyReport = (
+  data: object,
+  photos: MonthlyReport['photos'] = { front: true, side: true, back: true },
+): MonthlyReport => ({
   id: 2,
   kind: 'MONTHLY',
   userId: 1,
@@ -48,7 +51,7 @@ const aMonthlyReport = (data: object): MonthlyReport => ({
   submittedAt: null,
   seenByCoachAt: null,
   data: monthlyReportDataSchema.parse(data),
-  photos: { front: true, side: true, back: true },
+  photos,
   prevPhotosReportId: null,
 })
 
@@ -72,8 +75,18 @@ describe('reportSummary for a monthly report', () => {
         'Кардио: 240',
         '',
         'Вес: 72 → 71 (за месяц -1, от старта -4)',
+        '',
+        'Фото: 3 из 3',
       ].join('\n'),
     )
+  })
+
+  it('counts the photos that were added', () => {
+    const text = reportSummary(
+      aMonthlyReport({}, { front: true, side: false, back: false }),
+      aUser(),
+    )
+    expect(text.endsWith('Фото: 1 из 3')).toBe(true)
   })
 
   it('shows only the change since the start in the first month', () => {
@@ -89,7 +102,7 @@ describe('reportSummary for a monthly report', () => {
       aMonthlyReport({ prev: { weight: '72' }, now: { weight: '71' } }),
       aUser(),
     )
-    expect(text.endsWith('Вес: 72 → 71 (за месяц -1)')).toBe(true)
+    expect(text).toContain('Вес: 72 → 71 (за месяц -1)')
   })
 })
 

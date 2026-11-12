@@ -16,6 +16,11 @@ const submitMonth = async (
   const monthApp = await appAt(date)
   const draft = await as(monthApp, client).get(MONTHLY).expect(200)
   await as(monthApp, client).patch(`/reports/${draft.body.id}`, { data }).expect(200)
+  for (const angle of ['front', 'side', 'back']) {
+    await as(monthApp, client)
+      .upload(`/reports/${draft.body.id}/photos/${angle}`, Buffer.from([0xff, 0xd8]))
+      .expect(200)
+  }
   await as(monthApp, client).post(`/reports/${draft.body.id}/submit`).expect(200)
   await monthApp.close()
   return draft.body

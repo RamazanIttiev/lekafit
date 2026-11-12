@@ -1,5 +1,5 @@
 import { Alert, Button, Chip } from '@heroui/react'
-import { missingFields, monthlyMissingFields } from '@lekafit/shared'
+import { missingFields, missingPhotos, monthlyMissingFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
 import type { Api, MonthlyReportData, Report, ReportData } from '../../api'
 import { CenteredSpinner } from '../../components/CenteredSpinner'
@@ -21,7 +21,9 @@ const CONFIRM_MESSAGE = 'Отправить отчёт тренеру? Посл�
 const ERROR_VISIBLE_MS = 3000
 
 const missingIn = (report: Report) =>
-  report.kind === 'WEEKLY' ? missingFields(report.data) : monthlyMissingFields(report.data)
+  report.kind === 'WEEKLY'
+    ? missingFields(report.data)
+    : [...monthlyMissingFields(report.data), ...missingPhotos(report.photos)]
 
 const title = (report: Report) =>
   report.kind === 'WEEKLY' ? period(report) : monthName(report.weekStart)

@@ -28,6 +28,8 @@ export const monthlyReportSchema = z.object({
   ...reportFields,
   kind: z.literal('MONTHLY'),
   data: monthlyReportDataSchema,
+  photos: z.object({ front: z.boolean(), side: z.boolean(), back: z.boolean() }),
+  prevPhotosReportId: z.number().nullable(),
 })
 
 export const reportSchema = z.discriminatedUnion('kind', [weeklyReportSchema, monthlyReportSchema])

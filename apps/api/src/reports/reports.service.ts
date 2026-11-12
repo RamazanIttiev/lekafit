@@ -8,6 +8,7 @@ import {
 import {
   MEASURES,
   MONTHLY_MEASURES,
+  PHOTO_ANGLES,
   type MonthlyReportData,
   monthlyReportDataSchema,
   monthRange,
@@ -87,6 +88,11 @@ const mergeDraft = (report: Report, input: unknown): ReportData | MonthlyReportD
   })
 }
 
+const requireAllPhotos = (photos: MonthlyReport['photos']) => {
+  const missing = PHOTO_ANGLES.filter((a) => !photos[a.key]).map((a) => a.label)
+  if (missing.length) throw new BadRequestException(`Добавьте фото: ${missing.join(', ')}`)
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -130,6 +136,7 @@ export class ReportsService {
   async submit(userId: number, id: number): Promise<Report> {
     const report = await this.own(userId, id)
     if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
+    if (report.kind === 'MONTHLY') requireAllPhotos(report.photos)
     await this.reports.submit(id, await this.reports.planFor(userId))
     const submitted = await this.own(userId, id)
     await this.onSubmitted(submitted)

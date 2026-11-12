@@ -3,6 +3,7 @@ import {
   MONTHLY_MEASURES,
   MONTHLY_METRICS,
   MONTHLY_WELLBEING,
+  missingPhotos,
   monthlyMissingFields,
   monthlyReportDataSchema,
   monthName,
@@ -82,8 +83,33 @@ describe('monthlyMissingFields', () => {
 })
 
 describe('monthName', () => {
-  it('names the month of an ISO date with its year', () => {
-    expect(monthName('2026-01-01')).toBe('Январь 2026')
-    expect(monthName('2026-12-31')).toBe('Декабрь 2026')
+  it.each([
+    ['2026-01-01', 'Январь 2026'],
+    ['2026-02-01', 'Февраль 2026'],
+    ['2026-03-01', 'Март 2026'],
+    ['2026-04-01', 'Апрель 2026'],
+    ['2026-05-01', 'Май 2026'],
+    ['2026-06-01', 'Июнь 2026'],
+    ['2026-07-01', 'Июль 2026'],
+    ['2026-08-01', 'Август 2026'],
+    ['2026-09-01', 'Сентябрь 2026'],
+    ['2026-10-01', 'Октябрь 2026'],
+    ['2026-11-01', 'Ноябрь 2026'],
+    ['2027-12-31', 'Декабрь 2027'],
+  ])('names %s as %s', (iso, name) => {
+    expect(monthName(iso)).toBe(name)
+  })
+})
+
+describe('missingPhotos', () => {
+  it('lists the angles without a photo, in front, side, back order', () => {
+    expect(missingPhotos({ front: false, side: true, back: false })).toEqual([
+      'photos.front',
+      'photos.back',
+    ])
+  })
+
+  it('is empty when all three are there', () => {
+    expect(missingPhotos({ front: true, side: true, back: true })).toEqual([])
   })
 })

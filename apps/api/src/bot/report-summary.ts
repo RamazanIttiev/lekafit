@@ -5,6 +5,7 @@ import {
   MONTHLY_MEASURES,
   MONTHLY_METRICS,
   monthName,
+  PHOTO_ANGLES,
   parseNumber,
   type Unit,
 } from '@lekafit/shared'
@@ -53,6 +54,9 @@ const monthlyMeasureLines = ({ data }: MonthlyReport) =>
     return [`${m.label}: ${from} → ${now} (${changes.join(', ')})`]
   })
 
+const photoLine = ({ photos }: MonthlyReport) =>
+  `Фото: ${PHOTO_ANGLES.filter((a) => photos[a.key]).length} из ${PHOTO_ANGLES.length}`
+
 const sections = (report: Report, client: User): string[][] =>
   report.kind === 'WEEKLY'
     ? [
@@ -67,6 +71,7 @@ const sections = (report: Report, client: User): string[][] =>
         [`📋 Новый отчёт за месяц: ${clientName(client)}`, monthName(report.weekStart)],
         factLines(MONTHLY_METRICS, report.data.fact),
         monthlyMeasureLines(report),
+        [photoLine(report)],
       ]
 
 export const reportSummary = (report: Report, client: User): string =>

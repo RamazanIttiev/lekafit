@@ -359,3 +359,6 @@ export const PHOTO_ANGLES = [
   { key: 'back', label: 'Спина' },
 ] as const
 export type PhotoAngle = (typeof PHOTO_ANGLES)[number]['key']
+
+export const missingPhotos = (photos: Record<PhotoAngle, boolean>): string[] =>
+  PHOTO_ANGLES.filter((a) => !photos[a.key]).map((a) => `photos.${a.key}`)

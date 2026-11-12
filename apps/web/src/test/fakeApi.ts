@@ -41,6 +41,8 @@ export const aMonthlyReport = (overrides: Partial<MonthlyReport> = {}): MonthlyR
   data: monthlyReportDataSchema.parse({}),
   plan: aPlan(),
   submittedAt: null,
+  photos: { front: false, side: false, back: false },
+  prevPhotosReportId: null,
   ...overrides,
 })
 

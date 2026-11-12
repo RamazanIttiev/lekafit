@@ -146,6 +146,31 @@ describe('uploading monthly photos', () => {
   })
 })
 
+describe('photos are required to send a monthly report', () => {
+  it('refuses to send while photos are missing, naming them', async () => {
+    const client = aClient()
+    const id = await monthlyDraft(client)
+    await as(app, client).upload(photoUrl(id, 'side'), jpeg('s')).expect(200)
+    const res = await as(app, client).post(`/reports/${id}/submit`).expect(400)
+    expect(res.body.message).toBe('Добавьте фото: Фас, Спина')
+    const draft = await as(app, client).get(MONTHLY)
+    expect(draft.body.submittedAt).toBeNull()
+  })
+
+  it('sends once all three photos are there', async () => {
+    const client = aClient()
+    const id = await monthlyDraft(client)
+    await uploadAll(client, id)
+    await as(app, client).post(`/reports/${id}/submit`).expect(200)
+  })
+
+  it('does not ask for photos in a weekly report', async () => {
+    const client = aClient()
+    const weekly = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${weekly.body.id}/submit`).expect(200)
+  })
+})
+
 describe('last month photos', () => {
   it('points the new draft at last month report so its photos can be shown', async () => {
     const client = aClient()
