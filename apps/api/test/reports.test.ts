@@ -120,15 +120,27 @@ describe('PATCH /reports/:id', () => {
     expect(reopened.body.data.now.weight).toBe('71,9')
   })
 
-  it('keeps "before" measurements from the previous report, ignoring client edits', async () => {
+  it('lets the client fill an empty "before" measurement', async () => {
     const client = aClient()
     const { body } = await as(app, client).get('/reports/current')
     await as(app, client)
       .patch(`/reports/${body.id}`, { data: { ...filledFacts, prev: { weight: '99' } } })
       .expect(200)
     const reopened = await as(app, client).get('/reports/current')
-    expect(reopened.body.data.prev.weight).toBe('')
-    expect(reopened.body.data.now.weight).toBe('71,9')
+    expect(reopened.body.data.prev.weight).toBe('99')
+  })
+
+  it('keeps a saved "before" measurement, ignoring client edits', async () => {
+    const client = aClient()
+    const first = await as(app, client).get('/reports/current')
+    await as(app, client)
+      .patch(`/reports/${first.body.id}`, { data: { ...filledFacts, prev: { weight: '99' } } })
+      .expect(200)
+    await as(app, client)
+      .patch(`/reports/${first.body.id}`, { data: { ...filledFacts, prev: { weight: '1' } } })
+      .expect(200)
+    const reopened = await as(app, client).get('/reports/current')
+    expect(reopened.body.data.prev.weight).toBe('99')
   })
 
   it('rejects invalid data', async () => {

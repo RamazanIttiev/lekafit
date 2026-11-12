@@ -73,13 +73,16 @@ const mergeDraft = (report: Report, input: unknown): ReportData | MonthlyReportD
   if (report.kind === 'WEEKLY') {
     const parsed = reportDataSchema.safeParse(input)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-    return { ...parsed.data, prev: report.data.prev }
+    return reportDataSchema.parse({
+      ...parsed.data,
+      prev: keepFilled(report.data.prev, parsed.data.prev),
+    })
   }
   const parsed = monthlyReportDataSchema.safeParse(input)
   if (!parsed.success) throw new BadRequestException(parsed.error.issues)
   return monthlyReportDataSchema.parse({
     ...parsed.data,
-    prev: report.data.prev,
+    prev: keepFilled(report.data.prev, parsed.data.prev),
     baseline: keepFilled(report.data.baseline, parsed.data.baseline),
   })
 }

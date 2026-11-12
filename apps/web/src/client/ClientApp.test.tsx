@@ -69,10 +69,11 @@ describe('weekly report form', () => {
     await expect.element(screen.getByLabelText('Разница Вес')).toHaveTextContent('-0,5')
   })
 
-  it('shows a dash for "before" when there is no previous measurement', async () => {
+  it('lets the client type "before" when there is no previous measurement', async () => {
     const { screen } = await renderClient()
     await screen.getByRole('tab', { name: 'Замеры' }).click()
-    await expect.element(screen.getByLabelText('Было Талия')).toHaveTextContent('—')
+    await screen.getByRole('textbox', { name: 'Было Талия' }).fill('70')
+    await expect.element(screen.getByRole('textbox', { name: 'Было Талия' })).toHaveValue('70')
   })
 
   it('sends the first report without previous measurements', async () => {

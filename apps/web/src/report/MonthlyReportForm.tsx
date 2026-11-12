@@ -9,6 +9,7 @@ import {
   type Plan,
   parseNumber,
 } from '@lekafit/shared'
+import { useState } from 'react'
 import type { MonthlyReportData } from '../api'
 import {
   ChoiceField,
@@ -60,6 +61,11 @@ export const MonthlyReportForm = ({
     patch: Partial<MonthlyReportData[K]>,
   ) => onChange({ ...data, [section]: { ...data[section], ...patch } })
   const isInvalid = (path: string) => invalid.has(path)
+  const [editablePrev] = useState(
+    () =>
+      new Set(Object.keys(data.prev).filter((key) => !data.prev[key as keyof typeof data.prev])),
+  )
+  const hasPrev = (key: string) => !editablePrev.has(key)
   const firstMonth = (key: (typeof MONTHLY_MEASURES)[number]['key']) => !data.prev[key]
 
   return (
@@ -130,7 +136,17 @@ export const MonthlyReportForm = ({
                     ) : (
                       <Value label={`Старт ${m.label}`}>{data.baseline[m.key] || '—'}</Value>
                     )}
-                    <Value label={`Было ${m.label}`}>{data.prev[m.key] || '—'}</Value>
+                    {hasPrev(m.key) ? (
+                      <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
+                    ) : (
+                      <NumberInput
+                        label={`Было ${m.label}`}
+                        value={data.prev[m.key]}
+                        disabled={readOnly}
+                        invalid={false}
+                        onChange={(v) => set('prev', { [m.key]: v })}
+                      />
+                    )}
                     <NumberInput
                       label={`Стало ${m.label}`}
                       value={data.now[m.key]}

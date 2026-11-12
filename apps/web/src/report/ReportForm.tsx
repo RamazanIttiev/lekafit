@@ -9,6 +9,7 @@ import {
   type ReportData,
   WELLBEING,
 } from '@lekafit/shared'
+import { useState } from 'react'
 import {
   FeedbackFields,
   GridHead,
@@ -46,6 +47,11 @@ export const NoPlanNotice = () => (
 export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange }: Props) => {
   const set = <K extends keyof ReportData>(section: K, patch: Partial<ReportData[K]>) =>
     onChange({ ...data, [section]: { ...data[section], ...patch } })
+  const [editablePrev] = useState(
+    () =>
+      new Set(Object.keys(data.prev).filter((key) => !data.prev[key as keyof typeof data.prev])),
+  )
+  const hasPrev = (key: string) => !editablePrev.has(key)
   const isInvalid = (path: string) => invalid.has(path)
 
   return (
@@ -79,7 +85,17 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
               {MEASURES.map((m) => (
                 <Row key={m.key}>
                   <MetricName label={m.label} unit={m.unit} />
-                  <Value label={`Было ${m.label}`}>{data.prev[m.key] || '—'}</Value>
+                  {hasPrev(m.key) ? (
+                    <Value label={`Было ${m.label}`}>{data.prev[m.key]}</Value>
+                  ) : (
+                    <NumberInput
+                      label={`Было ${m.label}`}
+                      value={data.prev[m.key]}
+                      disabled={readOnly}
+                      invalid={false}
+                      onChange={(v) => set('prev', { [m.key]: v })}
+                    />
+                  )}
                   <NumberInput
                     label={`Стало ${m.label}`}
                     value={data.now[m.key]}
