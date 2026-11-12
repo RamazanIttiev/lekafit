@@ -5,6 +5,7 @@ import {
   MONTHLY_WELLBEING,
   monthlyMissingFields,
   monthlyReportDataSchema,
+  monthName,
   monthRange,
 } from './index'
 
@@ -77,5 +78,12 @@ describe('monthlyMissingFields', () => {
         feedback: { ...data.feedback, questions: ' ' },
       }),
     ).toEqual(['fact.steps', 'now.thigh', 'wellbeing.planEase', 'feedback.questions'])
+  })
+})
+
+describe('monthName', () => {
+  it('names the month of an ISO date with its year', () => {
+    expect(monthName('2026-01-01')).toBe('Январь 2026')
+    expect(monthName('2026-12-31')).toBe('Декабрь 2026')
   })
 })

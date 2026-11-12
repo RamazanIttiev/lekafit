@@ -179,7 +179,7 @@ describe('reportDataSchema limits', () => {
 describe('planSchema', () => {
   it('requires every metric as a non-negative number or null', () => {
     const plan = { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: null }
-    expect(planSchema.parse(plan)).toEqual(plan)
+    expect(planSchema.parse(plan)).toEqual({ ...plan, trainingMonth: null, cardioMonth: null })
     expect(planSchema.safeParse({ ...plan, cal: undefined }).success).toBe(false)
     expect(planSchema.safeParse({ ...plan, steps: -1 }).success).toBe(false)
   })
@@ -188,5 +188,17 @@ describe('planSchema', () => {
 describe('formatDelta for cardio minutes', () => {
   it('shows whole minutes', () => {
     expect(formatDelta({ from: 120, to: 150.4, unit: 'мин' })).toBe('+30')
+  })
+})
+
+describe('planSchema monthly targets', () => {
+  it('leaves monthly targets unset when a plan omits them', () => {
+    const plan = planSchema.parse({ cal: 1, protein: 1, fat: 1, carb: 1, steps: 1, training: 1 })
+    expect(plan).toMatchObject({ trainingMonth: null, cardioMonth: null })
+  })
+
+  it('rejects negative monthly targets', () => {
+    const base = { cal: 1, protein: 1, fat: 1, carb: 1, steps: 1, training: 1 }
+    expect(planSchema.safeParse({ ...base, cardioMonth: -1 }).success).toBe(false)
   })
 })

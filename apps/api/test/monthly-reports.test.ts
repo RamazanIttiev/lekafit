@@ -161,13 +161,64 @@ describe('listing', () => {
     expect(weeklyList.body.map((r: { kind: string }) => r.kind)).toEqual(['WEEKLY'])
     expect(monthlyList.body.map((r: { id: number }) => r.id)).toEqual([monthly.body.id])
   })
+})
 
-  it('keeps monthly reports out of the coach weekly report list for now', async () => {
+describe('monthly reports for the coach', () => {
+  it('lists submitted monthly reports in the client history with their kind', async () => {
     const client = aClient()
-    await submitMonth(new Date(2026, 10, 20, 9), client, {})
+    const weekly = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${weekly.body.id}/submit`).expect(200)
+    const monthly = await submitMonth(new Date(2026, 10, 20, 9), client, {})
     const clients = await as(app, theCoach()).get('/coach/clients').expect(200)
-    const id = clients.body[0].id
-    const reports = await as(app, theCoach()).get(`/coach/clients/${id}/reports`).expect(200)
-    expect(reports.body).toEqual([])
+    const reports = await as(app, theCoach())
+      .get(`/coach/clients/${clients.body[0].id}/reports`)
+      .expect(200)
+    expect(reports.body.map((r: { id: number; kind: string }) => [r.id, r.kind])).toEqual(
+      expect.arrayContaining([
+        [weekly.body.id, 'WEEKLY'],
+        [monthly.id, 'MONTHLY'],
+      ]),
+    )
+  })
+
+  it('counts unreviewed monthly reports and opens them', async () => {
+    const client = aClient()
+    const monthly = await submitMonth(new Date(2026, 10, 20, 9), client, {
+      fact: { cardio: '240' },
+    })
+    const before = await as(app, theCoach()).get('/coach/clients')
+    expect(before.body[0].unseenReports).toBe(1)
+    const res = await as(app, theCoach()).get(`/coach/reports/${monthly.id}`).expect(200)
+    expect(res.body).toMatchObject({ kind: 'MONTHLY', data: { fact: { cardio: '240' } } })
+    const after = await as(app, theCoach()).get('/coach/clients')
+    expect(after.body[0].unseenReports).toBe(0)
+  })
+
+  it('keeps "last report" pointing at the latest weekly report', async () => {
+    const client = aClient()
+    const weekly = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${weekly.body.id}/submit`).expect(200)
+    await submitMonth(new Date(2026, 11, 10, 9), client, {})
+    const clients = await as(app, theCoach()).get('/coach/clients')
+    expect(clients.body[0].lastReportWeek).toBe('2026-11-09')
+  })
+
+  it('shows the coach monthly workout and cardio targets in the monthly report', async () => {
+    const client = aClient()
+    const { body: me } = await as(app, client).get('/me')
+    await as(app, theCoach())
+      .put(`/coach/clients/${me.id}/plan`, {
+        cal: 1800,
+        protein: 120,
+        fat: 60,
+        carb: 180,
+        steps: 10000,
+        training: 3,
+        trainingMonth: 12,
+        cardioMonth: 300,
+      })
+      .expect(200)
+    const res = await as(app, client).get(MONTHLY)
+    expect(res.body.plan).toMatchObject({ trainingMonth: 12, cardioMonth: 300 })
   })
 })

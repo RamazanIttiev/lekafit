@@ -136,6 +136,8 @@ export const planSchema = z.object({
   carb: planValue,
   steps: planValue,
   training: planValue,
+  trainingMonth: planValue.default(null),
+  cardioMonth: planValue.default(null),
 })
 
 export type Plan = z.infer<typeof planSchema>
@@ -318,6 +320,24 @@ export const monthRange = (today: Date): { start: string; end: string } => ({
   start: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)),
   end: isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
 })
+
+const MONTHS = [
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+]
+
+export const monthName = (isoDate: string): string =>
+  `${MONTHS[Number(isoDate.slice(5, 7)) - 1]} ${isoDate.slice(0, 4)}`
 
 export const monthlyMissingFields = (data: MonthlyReportData): string[] => [
   ...MONTHLY_METRICS.filter(

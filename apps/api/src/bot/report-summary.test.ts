@@ -1,6 +1,6 @@
-import { reportDataSchema } from '@lekafit/shared'
+import { monthlyReportDataSchema, reportDataSchema } from '@lekafit/shared'
 import { describe, expect, it } from 'vitest'
-import type { WeeklyReport } from '../reports/reports.repository'
+import type { MonthlyReport, WeeklyReport } from '../reports/reports.repository'
 import type { User } from '../users/users.repository'
 import { reportSummary } from './report-summary'
 
@@ -22,11 +22,73 @@ const aReport = (
   userId: 1,
   weekStart: '2026-11-09',
   weekEnd: '2026-11-15',
-  plan: { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: 3 },
+  plan: {
+    cal: 1800,
+    protein: 120,
+    fat: 60,
+    carb: 180,
+    steps: 10000,
+    training: 3,
+    trainingMonth: null,
+    cardioMonth: null,
+  },
   submittedAt: null,
   seenByCoachAt: null,
   ...overrides,
   data: reportDataSchema.parse(overrides.data ?? {}),
+})
+
+const aMonthlyReport = (data: object): MonthlyReport => ({
+  id: 2,
+  kind: 'MONTHLY',
+  userId: 1,
+  weekStart: '2026-11-01',
+  weekEnd: '2026-11-30',
+  plan: null,
+  submittedAt: null,
+  seenByCoachAt: null,
+  data: monthlyReportDataSchema.parse(data),
+})
+
+describe('reportSummary for a monthly report', () => {
+  it('names the month and shows changes over the month and since the start', () => {
+    const text = reportSummary(
+      aMonthlyReport({
+        fact: { cal: '1850', cardio: '240' },
+        baseline: { weight: '75' },
+        prev: { weight: '72' },
+        now: { weight: '71', thigh: '56' },
+      }),
+      aUser(),
+    )
+    expect(text).toBe(
+      [
+        '📋 Новый отчёт за месяц: Анна Иванова (@anna)',
+        'Ноябрь 2026',
+        '',
+        'Калории: 1850',
+        'Кардио: 240',
+        '',
+        'Вес: 72 → 71 (за месяц -1, от старта -4)',
+      ].join('\n'),
+    )
+  })
+
+  it('shows only the change since the start in the first month', () => {
+    const text = reportSummary(
+      aMonthlyReport({ baseline: { waist: '70' }, now: { waist: '68' } }),
+      aUser(),
+    )
+    expect(text).toContain('Талия: 70 → 68 (от старта -2)')
+  })
+
+  it('shows only the change over the month when no start value was recorded', () => {
+    const text = reportSummary(
+      aMonthlyReport({ prev: { weight: '72' }, now: { weight: '71' } }),
+      aUser(),
+    )
+    expect(text.endsWith('Вес: 72 → 71 (за месяц -1)')).toBe(true)
+  })
 })
 
 describe('reportSummary', () => {

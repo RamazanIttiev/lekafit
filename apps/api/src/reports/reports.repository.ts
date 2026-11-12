@@ -28,7 +28,7 @@ export type Report = WeeklyReport | MonthlyReport
 
 export type SubmittedSummary = Pick<
   ReportEntity,
-  'userId' | 'weekStart' | 'submittedAt' | 'seenByCoachAt'
+  'userId' | 'kind' | 'weekStart' | 'submittedAt' | 'seenByCoachAt'
 >
 
 const UNIQUE_VIOLATION = '23505'
@@ -38,13 +38,24 @@ const isUniqueViolation = (error: unknown) =>
   'code' in error.driverError &&
   error.driverError.code === UNIQUE_VIOLATION
 
-const toPlan = ({ cal, protein, fat, carb, steps, training }: PlanEntity): Plan => ({
+const toPlan = ({
   cal,
   protein,
   fat,
   carb,
   steps,
   training,
+  trainingMonth,
+  cardioMonth,
+}: PlanEntity): Plan => ({
+  cal,
+  protein,
+  fat,
+  carb,
+  steps,
+  training,
+  trainingMonth,
+  cardioMonth,
 })
 
 @Injectable()
@@ -144,10 +155,19 @@ export class ReportsRepository {
     return reports.filter((r): r is Report => r !== null)
   }
 
+  async submittedFor(userId: number): Promise<Report[]> {
+    const entities = await this.reports.find({
+      where: { userId, submittedAt: Not(IsNull()) },
+      order: { weekStart: 'DESC' },
+    })
+    const reports = await Promise.all(entities.map((e) => this.toReport(e)))
+    return reports.filter((r): r is Report => r !== null)
+  }
+
   async submittedSummaries(): Promise<SubmittedSummary[]> {
     return this.reports.find({
-      select: { userId: true, weekStart: true, submittedAt: true, seenByCoachAt: true },
-      where: { kind: 'WEEKLY', submittedAt: Not(IsNull()) },
+      select: { userId: true, kind: true, weekStart: true, submittedAt: true, seenByCoachAt: true },
+      where: { submittedAt: Not(IsNull()) },
     })
   }
 

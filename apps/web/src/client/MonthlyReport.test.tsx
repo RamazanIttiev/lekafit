@@ -112,3 +112,15 @@ describe('monthly progress', () => {
     await expect.element(table.getByRole('gridcell', { name: '68' })).toBeVisible()
   })
 })
+
+describe('monthly targets from the coach', () => {
+  it('shows the coach monthly workout and cardio targets instead of asking for them', async () => {
+    const { screen } = await renderMonthly({
+      monthly: aMonthlyReport({ plan: aPlan({ trainingMonth: 12, cardioMonth: 300 }) }),
+    })
+    await expect.element(screen.getByLabelText('План Силовые тренировки')).toHaveTextContent('12')
+    await expect.element(screen.getByLabelText('План Кардио')).toHaveTextContent('300')
+    await screen.getByLabelText('Факт Силовые тренировки').fill('9')
+    await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
+  })
+})

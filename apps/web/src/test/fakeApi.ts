@@ -17,6 +17,8 @@ export const aPlan = (overrides: Partial<Plan> = {}): Plan => ({
   carb: 180,
   steps: 10000,
   training: 3,
+  trainingMonth: null,
+  cardioMonth: null,
   ...overrides,
 })
 

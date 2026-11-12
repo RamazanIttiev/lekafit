@@ -11,10 +11,12 @@ import {
 } from '@heroui/react'
 import { METRICS, type MetricKey, parseNumber } from '@lekafit/shared'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
-import type { ClientListItem, ClientProfile, CoachApi, CoachReport, Plan } from '../api'
+import type { ClientListItem, ClientProfile, CoachApi, CoachReport, Plan, Report } from '../api'
 import { CenteredSpinner } from '../CenteredSpinner'
 import { Dynamics } from '../Dynamics'
-import { period, shortDate } from '../format'
+import { monthName, period, shortDate } from '../format'
+import { MonthlyDynamics } from '../MonthlyDynamics'
+import { MonthlyReportForm } from '../report/MonthlyReportForm'
 import { ReportForm } from '../report/ReportForm'
 import type { BackButton } from '../telegram'
 import { useBackButton } from '../useBackButton'
@@ -152,14 +154,28 @@ const Clients = ({
 const asText = (value: number | null | undefined) =>
   value === null || value === undefined ? '' : String(value)
 
-const planToText = (plan: Plan | null): Record<MetricKey, string> => ({
+type PlanKey = MetricKey | 'trainingMonth' | 'cardioMonth'
+
+const MONTHLY_TARGETS = [
+  { key: 'trainingMonth', label: 'Тренировки в месяц', unit: 'раз', scope: 'месяц' },
+  { key: 'cardioMonth', label: 'Кардио в месяц', unit: 'мин', scope: 'месяц' },
+] as const
+
+const PLAN_FIELDS = [...METRICS, ...MONTHLY_TARGETS]
+
+const planToText = (plan: Plan | null): Record<PlanKey, string> => ({
   cal: asText(plan?.cal),
   protein: asText(plan?.protein),
   fat: asText(plan?.fat),
   carb: asText(plan?.carb),
   steps: asText(plan?.steps),
   training: asText(plan?.training),
+  trainingMonth: asText(plan?.trainingMonth),
+  cardioMonth: asText(plan?.cardioMonth),
 })
+
+const reportTitle = (r: Report) =>
+  r.kind === 'WEEKLY' ? `Отчёт ${period(r)}` : `Отчёт за ${monthName(r.weekStart)}`
 
 const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile }) => {
   const [values, setValues] = useState(planToText(profile.plan))
@@ -173,7 +189,7 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
   }, [saved])
 
   const save = async () => {
-    const invalid = METRICS.filter(
+    const invalid = PLAN_FIELDS.filter(
       (m) => values[m.key].trim() && parseNumber(values[m.key]) === null,
     )
     if (invalid.length) {
@@ -188,6 +204,8 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
       carb: parseNumber(values.carb),
       steps: parseNumber(values.steps),
       training: parseNumber(values.training),
+      trainingMonth: parseNumber(values.trainingMonth),
+      cardioMonth: parseNumber(values.cardioMonth),
     }
     try {
       await api.setPlan(profile.id, plan)
@@ -206,7 +224,7 @@ const PlanEditor = ({ api, profile }: { api: CoachApi; profile: ClientProfile })
         <Card.Description>Клиент видит его в отчёте</Card.Description>
       </Card.Header>
       <Card.Content className="grid grid-cols-2 gap-3">
-        {METRICS.map((m) => (
+        {PLAN_FIELDS.map((m) => (
           <TextField
             key={m.key}
             value={values[m.key]}
@@ -244,6 +262,8 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
         <CenteredSpinner />
       </Loading>
     )
+  const weekly = reports.value.flatMap((r) => (r.kind === 'WEEKLY' ? [r] : []))
+  const monthly = reports.value.flatMap((r) => (r.kind === 'MONTHLY' ? [r] : []))
   return (
     <>
       <h1>{fullName(profile.value)}</h1>
@@ -266,7 +286,8 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
         <Tabs.Panel className="flex flex-col gap-3 p-0 pt-3" id="progress">
           {reports.value.length > 0 ? (
             <>
-              <Dynamics reports={reports.value} />
+              {monthly.length > 0 && <MonthlyDynamics reports={monthly} />}
+              {weekly.length > 0 && <Dynamics reports={weekly} />}
               <div className="flex flex-col gap-2">
                 {reports.value.map((r) => (
                   <Button
@@ -275,7 +296,7 @@ const Client = ({ api, id, go }: { api: CoachApi; id: number; go: (r: Route) => 
                     className="w-full"
                     onPress={() => go({ name: 'report', id: r.id })}
                   >
-                    Отчёт {period(r)}
+                    {reportTitle(r)}
                   </Button>
                 ))}
               </div>
@@ -318,8 +339,17 @@ const ReportView = ({
   return (
     <>
       <h1>{fullName(report.client)}</h1>
-      <p>Отчёт {period(report)}</p>
-      <ReportForm data={report.data} plan={report.plan} readOnly onChange={() => undefined} />
+      <p>{reportTitle(report)}</p>
+      {report.kind === 'WEEKLY' ? (
+        <ReportForm data={report.data} plan={report.plan} readOnly onChange={() => undefined} />
+      ) : (
+        <MonthlyReportForm
+          data={report.data}
+          plan={report.plan}
+          readOnly
+          onChange={() => undefined}
+        />
+      )}
     </>
   )
 }

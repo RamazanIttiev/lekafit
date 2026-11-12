@@ -6,7 +6,16 @@ afterAll(() => app.close())
 beforeEach(resetDatabase)
 
 const coach = () => as(app, theCoach())
-const plan = { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: 3 }
+const plan = {
+  cal: 1800,
+  protein: 120,
+  fat: 60,
+  carb: 180,
+  steps: 10000,
+  training: 3,
+  trainingMonth: 12,
+  cardioMonth: 300,
+}
 
 const registered = async (user: TelegramUser) => {
   const { body } = await as(app, user).get('/me')
@@ -118,6 +127,15 @@ describe('client plan', () => {
     await coach().put(`/coach/clients/${id}/plan`, { ...plan, training: null })
     const res = await coach().get(`/coach/clients/${id}`).expect(200)
     expect(res.body).toMatchObject({ id, firstName: 'Анна', plan: { ...plan, training: null } })
+  })
+
+  it('accepts a plan without monthly targets, leaving them unset', async () => {
+    const client = aClient()
+    const id = await registered(client)
+    const { trainingMonth: _, cardioMonth: __, ...weeklyOnly } = plan
+    await coach().put(`/coach/clients/${id}/plan`, weeklyOnly).expect(200)
+    const res = await coach().get(`/coach/clients/${id}`)
+    expect(res.body.plan).toEqual({ ...weeklyOnly, trainingMonth: null, cardioMonth: null })
   })
 
   it('rejects invalid plans', async () => {

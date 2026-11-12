@@ -16,7 +16,9 @@ const latestTime = (dates: (Date | null)[]): number | null => {
 const summarize = (client: User, reports: SubmittedSummary[]) => ({
   summary: {
     ...client,
-    lastReportWeek: latestIsoDate(reports.map((r) => r.weekStart)),
+    lastReportWeek: latestIsoDate(
+      reports.filter((r) => r.kind === 'WEEKLY').map((r) => r.weekStart),
+    ),
     unseenReports: reports.filter((r) => r.seenByCoachAt === null).length,
   },
   lastSubmittedAt: latestTime(reports.map((r) => r.submittedAt)),
@@ -77,8 +79,7 @@ export class CoachService {
 
   async clientReports(id: number) {
     await this.client(id)
-    const all = await this.reports.listFor(id, 'WEEKLY')
-    return all.filter((r) => r.submittedAt !== null)
+    return this.reports.submittedFor(id)
   }
 
   async report(id: number) {

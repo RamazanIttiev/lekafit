@@ -1,4 +1,4 @@
-import type { ClientListItem, ClientProfile, CoachApi, Plan, WeeklyReport } from '../api'
+import type { ClientListItem, ClientProfile, CoachApi, Plan, Report } from '../api'
 
 export const aListItem = (overrides: Partial<ClientListItem> = {}): ClientListItem => ({
   id: 1,
@@ -13,7 +13,7 @@ export const aListItem = (overrides: Partial<ClientListItem> = {}): ClientListIt
 export const fakeCoachApi = (options: {
   clients?: ClientListItem[]
   profile?: ClientProfile
-  reports?: WeeklyReport[]
+  reports?: Report[]
 }) => {
   const savedPlans: Plan[] = []
   const profile = options.profile ?? {

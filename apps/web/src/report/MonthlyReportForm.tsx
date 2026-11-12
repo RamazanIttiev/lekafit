@@ -42,8 +42,11 @@ const COMPLETION = [
 
 const coachPlanFor =
   (plan: Plan | null) =>
-  (key: MetricKey): number | null =>
-    key === 'training' || key === 'cardio' ? null : (plan?.[key] ?? null)
+  (key: MetricKey): number | null => {
+    if (key === 'training') return plan?.trainingMonth ?? null
+    if (key === 'cardio') return plan?.cardioMonth ?? null
+    return plan?.[key] ?? null
+  }
 
 export const MonthlyReportForm = ({
   data,

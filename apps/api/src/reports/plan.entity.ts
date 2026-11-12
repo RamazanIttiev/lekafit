@@ -28,6 +28,12 @@ export class PlanEntity {
   @Column({ type: 'double precision', nullable: true })
   training!: number | null
 
+  @Column({ name: 'training_month', type: 'double precision', nullable: true })
+  trainingMonth!: number | null
+
+  @Column({ name: 'cardio_month', type: 'double precision', nullable: true })
+  cardioMonth!: number | null
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date
 }

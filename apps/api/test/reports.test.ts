@@ -86,6 +86,8 @@ describe('GET /reports/current', () => {
       carb: 180,
       steps: 10000,
       training: 3,
+      trainingMonth: null,
+      cardioMonth: null,
     })
   })
 

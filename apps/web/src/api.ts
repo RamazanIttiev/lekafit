@@ -53,7 +53,10 @@ export const clientListItemSchema = coachClientSchema.extend({
 
 export const clientProfileSchema = coachClientSchema.extend({ plan: planSchema.nullable() })
 
-export const coachReportSchema = weeklyReportSchema.extend({ client: coachClientSchema })
+export const coachReportSchema = z.discriminatedUnion('kind', [
+  weeklyReportSchema.extend({ client: coachClientSchema }),
+  monthlyReportSchema.extend({ client: coachClientSchema }),
+])
 
 export type CoachClient = z.infer<typeof coachClientSchema>
 export type ClientListItem = z.infer<typeof clientListItemSchema>
@@ -65,7 +68,7 @@ export type CoachApi = {
   clients: () => Promise<ClientListItem[]>
   client: (id: number) => Promise<ClientProfile>
   setPlan: (id: number, plan: Plan) => Promise<Plan>
-  clientReports: (id: number) => Promise<WeeklyReport[]>
+  clientReports: (id: number) => Promise<Report[]>
   report: (id: number) => Promise<CoachReport>
   invite: () => Promise<{ url: string }>
 }
@@ -134,7 +137,7 @@ export const createCoachApi = (request: Request): CoachApi => ({
   client: (id) => request(`/coach/clients/${id}`, clientProfileSchema),
   setPlan: (id, plan) =>
     request(`/coach/clients/${id}/plan`, planSchema, { method: 'PUT', body: plan }),
-  clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(weeklyReportSchema)),
+  clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
   report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
   invite: () => request('/coach/invite', z.object({ url: z.string() })),
 })
