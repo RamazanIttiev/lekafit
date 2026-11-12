@@ -78,12 +78,12 @@ export class CoachService {
   async clientReports(id: number) {
     await this.client(id)
     const all = await this.reports.listFor(id)
-    return all.filter((r) => r.status === 'SUBMITTED')
+    return all.filter((r) => r.submittedAt !== null)
   }
 
   async report(id: number) {
     const report = await this.reports.findById(id)
-    if (report?.status !== 'SUBMITTED') throw new NotFoundException()
+    if (!report?.submittedAt) throw new NotFoundException()
     await this.reports.markSeen(id)
     return { ...report, client: await this.client(report.userId) }
   }

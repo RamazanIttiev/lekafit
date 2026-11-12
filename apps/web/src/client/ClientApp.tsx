@@ -57,7 +57,7 @@ const CurrentReport = ({ api, confirm }: Props) => {
   if (error) return <Notice status="danger">{error}</Notice>
   if (!report) return <CenteredSpinner />
 
-  const readOnly = report.status === 'SUBMITTED' || sending
+  const readOnly = report.submittedAt !== null || sending
 
   const onChange = (data: ReportData) => {
     setReport({ ...report, data })
@@ -84,13 +84,13 @@ const CurrentReport = ({ api, confirm }: Props) => {
     <>
       <div className="flex items-center justify-between">
         <h1>{period(report)}</h1>
-        {report.status === 'DRAFT' && autosave.status !== 'idle' && (
+        {report.submittedAt === null && autosave.status !== 'idle' && (
           <Chip size="sm" color={autosave.status === 'error' ? 'danger' : 'default'}>
             {SAVE_LABEL[autosave.status]}
           </Chip>
         )}
       </div>
-      {report.status === 'SUBMITTED' && <Notice status="success">Отчёт отправлен тренеру</Notice>}
+      {report.submittedAt !== null && <Notice status="success">Отчёт отправлен тренеру</Notice>}
       {invalid.size > 0 && (
         <div className="fixed inset-x-3 top-3 z-50 mx-auto max-w-2xl">
           <Alert status="danger">
@@ -101,7 +101,7 @@ const CurrentReport = ({ api, confirm }: Props) => {
           </Alert>
         </div>
       )}
-      {report.status !== 'SUBMITTED' && (
+      {report.submittedAt === null && (
         <ReportForm
           data={report.data}
           plan={report.plan}
@@ -110,7 +110,7 @@ const CurrentReport = ({ api, confirm }: Props) => {
           onChange={onChange}
         />
       )}
-      {report.status === 'DRAFT' && (
+      {report.submittedAt === null && (
         <Button fullWidth size="lg" isDisabled={sending} onPress={submit}>
           Отправить тренеру
         </Button>

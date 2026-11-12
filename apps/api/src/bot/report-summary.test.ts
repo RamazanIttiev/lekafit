@@ -19,7 +19,6 @@ const aReport = (overrides: Omit<Partial<Report>, 'data'> & { data?: object } = 
   userId: 1,
   weekStart: '2026-11-09',
   weekEnd: '2026-11-15',
-  status: 'SUBMITTED',
   plan: { cal: 1800, protein: 120, fat: 60, carb: 180, steps: 10000, training: 3 },
   submittedAt: null,
   seenByCoachAt: null,

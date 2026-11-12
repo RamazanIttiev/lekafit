@@ -21,7 +21,7 @@ describe('GET /reports/current', () => {
     expect(res.body).toMatchObject({
       weekStart: '2026-11-09',
       weekEnd: '2026-11-15',
-      status: 'DRAFT',
+      submittedAt: null,
       plan: null,
     })
     expect(res.body.data.fact.cal).toBe('')
@@ -96,7 +96,8 @@ describe('GET /reports/current', () => {
     await as(app, client).post(`/reports/${lastWeek.body.id}/submit`).expect(200)
 
     const nextWeek = await as(mondayApp, client).get('/reports/current')
-    expect(nextWeek.body).toMatchObject({ weekStart: '2026-11-09', status: 'SUBMITTED' })
+    expect(nextWeek.body).toMatchObject({ weekStart: '2026-11-09' })
+    expect(nextWeek.body.submittedAt).toBeTruthy()
 
     const later = await startApp({ now: () => new Date(2026, 10, 19, 9) })
     const fresh = await as(later, client).get('/reports/current')
@@ -157,7 +158,6 @@ describe('POST /reports/:id/submit', () => {
     const client = aClient()
     const { body } = await as(app, client).get('/reports/current')
     const res = await as(app, client).post(`/reports/${body.id}/submit`).expect(200)
-    expect(res.body.status).toBe('SUBMITTED')
     expect(res.body.submittedAt).toBeTruthy()
   })
 

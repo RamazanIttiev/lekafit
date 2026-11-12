@@ -126,7 +126,7 @@ describe('weekly report form', () => {
       vi.fn(async () => false),
     )
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
-    expect(state.current.status).toBe('DRAFT')
+    expect(state.current.submittedAt).toBeNull()
     await expect.element(screen.getByRole('button', { name: 'Отправить тренеру' })).toBeVisible()
   })
 
@@ -142,7 +142,7 @@ describe('weekly report form', () => {
     await expect.element(screen.getByLabelText('Факт Калории')).toBeInvalid()
     await expect.element(screen.getByLabelText('Факт Белки')).toBeValid()
     expect(confirm).not.toHaveBeenCalled()
-    expect(state.current.status).toBe('DRAFT')
+    expect(state.current.submittedAt).toBeNull()
   })
 
   it('outlines empty fields on every tab, including dropdowns', async () => {
@@ -176,7 +176,10 @@ describe('weekly report form', () => {
 
   it('shows an already sent report read-only', async () => {
     const { screen } = await renderClient({
-      current: aReport({ status: 'SUBMITTED', data: dataWith({ fact: { cal: '1850' } }) }),
+      current: aReport({
+        submittedAt: '2026-11-10T09:00:00.000Z',
+        data: dataWith({ fact: { cal: '1850' } }),
+      }),
     })
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
   })
@@ -188,7 +191,7 @@ describe('report history', () => {
       id: 7,
       weekStart: '2026-11-02',
       weekEnd: '2026-11-08',
-      status: 'SUBMITTED',
+      submittedAt: '2026-11-10T09:00:00.000Z',
       data: dataWith({ now: { weight: '82', waist: '65' }, fact: { cal: '1200', steps: '12000' } }),
     })
     const { screen } = await renderClient({ history: [past] })

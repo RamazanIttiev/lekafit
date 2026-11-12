@@ -1,18 +1,15 @@
 import { type Plan, type ReportData, reportDataSchema } from '@lekafit/shared'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IsNull, QueryFailedError, type Repository } from 'typeorm'
+import { IsNull, Not, QueryFailedError, type Repository } from 'typeorm'
 import { PlanEntity } from './plan.entity'
-import { ReportEntity, type ReportStatus } from './report.entity'
-
-export type { ReportStatus }
+import { ReportEntity } from './report.entity'
 
 export type Report = {
   id: number
   userId: number
   weekStart: string
   weekEnd: string
-  status: ReportStatus
   data: ReportData
   plan: Plan | null
   submittedAt: Date | null
@@ -60,7 +57,7 @@ export class ReportsRepository {
   private async toReport(entity: ReportEntity | null): Promise<Report | null> {
     if (!entity) return null
     const { planSnapshot, data, user: _, updatedAt: __, ...rest } = entity
-    const plan = rest.status === 'SUBMITTED' ? planSnapshot : await this.planFor(rest.userId)
+    const plan = rest.submittedAt ? planSnapshot : await this.planFor(rest.userId)
     return { ...rest, data: reportDataSchema.parse(data), plan }
   }
 
@@ -75,7 +72,7 @@ export class ReportsRepository {
   async lastSubmitted(userId: number): Promise<Report | null> {
     return this.toReport(
       await this.reports.findOne({
-        where: { userId, status: 'SUBMITTED' },
+        where: { userId, submittedAt: Not(IsNull()) },
         order: { weekStart: 'DESC' },
       }),
     )
@@ -98,13 +95,13 @@ export class ReportsRepository {
   }
 
   async updateDraft(id: number, data: ReportData): Promise<void> {
-    await this.reports.update({ id, status: 'DRAFT' }, { data })
+    await this.reports.update({ id, submittedAt: IsNull() }, { data })
   }
 
   async submit(id: number, plan: Plan | null): Promise<void> {
     await this.reports.update(
-      { id, status: 'DRAFT' },
-      { status: 'SUBMITTED', submittedAt: new Date(), planSnapshot: plan },
+      { id, submittedAt: IsNull() },
+      { submittedAt: new Date(), planSnapshot: plan },
     )
   }
 
@@ -117,7 +114,7 @@ export class ReportsRepository {
   async submittedSummaries(): Promise<SubmittedSummary[]> {
     return this.reports.find({
       select: { userId: true, weekStart: true, submittedAt: true, seenByCoachAt: true },
-      where: { status: 'SUBMITTED' },
+      where: { submittedAt: Not(IsNull()) },
     })
   }
 

@@ -10,8 +10,6 @@ import {
 } from 'typeorm'
 import { UserEntity } from '../users/user.entity'
 
-export type ReportStatus = 'DRAFT' | 'SUBMITTED'
-
 @Entity('reports')
 @Unique('reports_user_week', ['userId', 'weekStart'])
 export class ReportEntity {
@@ -30,9 +28,6 @@ export class ReportEntity {
 
   @Column({ name: 'week_end', type: 'date' })
   weekEnd!: string
-
-  @Column({ type: 'varchar', length: 10, default: 'DRAFT' })
-  status!: ReportStatus
 
   @Column({ type: 'jsonb' })
   data!: unknown

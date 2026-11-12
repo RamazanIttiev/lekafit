@@ -92,14 +92,14 @@ describe('client page', () => {
             id: 2,
             weekStart: '2026-11-09',
             weekEnd: '2026-11-15',
-            status: 'SUBMITTED',
+            submittedAt: '2026-11-10T09:00:00.000Z',
             data: dataWith({ now: { weight: '71,9' }, fact: { cal: '1850' } }),
           }),
           aReport({
             id: 1,
             weekStart: '2026-11-02',
             weekEnd: '2026-11-08',
-            status: 'SUBMITTED',
+            submittedAt: '2026-11-10T09:00:00.000Z',
             data: dataWith({ now: { weight: '72,4' }, fact: { cal: '1900' } }),
           }),
         ],
@@ -121,7 +121,11 @@ describe('client page', () => {
     const { screen } = await renderCoach(
       {
         reports: [
-          aReport({ id: 5, status: 'SUBMITTED', data: dataWith({ fact: { cal: '1850' } }) }),
+          aReport({
+            id: 5,
+            submittedAt: '2026-11-10T09:00:00.000Z',
+            data: dataWith({ fact: { cal: '1850' } }),
+          }),
         ],
       },
       clientRoute,
@@ -140,7 +144,7 @@ describe('report page', () => {
         reports: [
           aReport({
             id: 9,
-            status: 'SUBMITTED',
+            submittedAt: '2026-11-10T09:00:00.000Z',
             data: dataWith({ fact: { cal: '1850' }, feedback: { wins: 'Все тренировки' } }),
           }),
         ],
@@ -176,7 +180,7 @@ describe('report page', () => {
     const { screen, back } = await renderCoach(
       {
         profile: { id: 1, firstName: 'Анна', lastName: 'Иванова', username: 'anna', plan: null },
-        reports: [aReport({ id: 9, status: 'SUBMITTED' })],
+        reports: [aReport({ id: 9, submittedAt: '2026-11-10T09:00:00.000Z' })],
       },
       '#/coach/reports/9',
     )
@@ -187,7 +191,7 @@ describe('report page', () => {
 
   it('shows no in-page back buttons', async () => {
     const { screen } = await renderCoach(
-      { reports: [aReport({ id: 9, status: 'SUBMITTED' })] },
+      { reports: [aReport({ id: 9, submittedAt: '2026-11-10T09:00:00.000Z' })] },
       '#/coach/reports/9',
     )
     await expect.element(screen.getByLabelText('Факт Калории')).toBeVisible()

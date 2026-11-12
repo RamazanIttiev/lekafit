@@ -48,7 +48,7 @@ export class ReportsService {
 
   async saveDraft(userId: number, id: number, input: unknown): Promise<Report> {
     const report = await this.own(userId, id)
-    if (report.status !== 'DRAFT') throw new ConflictException('Отчёт уже отправлен')
+    if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
     const parsed = reportDataSchema.safeParse(input)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
     await this.reports.updateDraft(id, { ...parsed.data, prev: report.data.prev })
@@ -57,7 +57,7 @@ export class ReportsService {
 
   async submit(userId: number, id: number): Promise<Report> {
     const report = await this.own(userId, id)
-    if (report.status !== 'DRAFT') throw new ConflictException('Отчёт уже отправлен')
+    if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
     await this.reports.submit(id, await this.reports.planFor(userId))
     const submitted = await this.own(userId, id)
     await this.onSubmitted(submitted)

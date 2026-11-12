@@ -14,7 +14,6 @@ export const reportSchema = z.object({
   id: z.number(),
   weekStart: z.string(),
   weekEnd: z.string(),
-  status: z.enum(['DRAFT', 'SUBMITTED']),
   data: reportDataSchema,
   plan: planSchema.nullable(),
   submittedAt: z.string().nullable(),

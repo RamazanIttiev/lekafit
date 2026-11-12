@@ -15,7 +15,6 @@ export const aReport = (overrides: Partial<Report> = {}): Report => ({
   id: 1,
   weekStart: '2026-11-09',
   weekEnd: '2026-11-15',
-  status: 'DRAFT',
   data: reportDataSchema.parse({}),
   plan: aPlan(),
   submittedAt: null,
@@ -61,7 +60,6 @@ export const fakeApi = (options: { current?: Report; history?: Report[] } = {}) 
     submitReport: async () => {
       state.current = {
         ...state.current,
-        status: 'SUBMITTED',
         submittedAt: new Date().toISOString(),
       }
       return state.current
