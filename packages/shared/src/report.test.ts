@@ -184,3 +184,9 @@ describe('planSchema', () => {
     expect(planSchema.safeParse({ ...plan, steps: -1 }).success).toBe(false)
   })
 })
+
+describe('formatDelta for cardio minutes', () => {
+  it('shows whole minutes', () => {
+    expect(formatDelta({ from: 120, to: 150.4, unit: 'мин' })).toBe('+30')
+  })
+})

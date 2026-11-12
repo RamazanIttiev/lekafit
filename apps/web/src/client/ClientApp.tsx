@@ -1,10 +1,12 @@
 import { Alert, Button, Chip, Tabs } from '@heroui/react'
-import { missingFields } from '@lekafit/shared'
+import { missingFields, monthlyMissingFields } from '@lekafit/shared'
 import { useCallback, useEffect, useState } from 'react'
-import type { Api, Report, ReportData } from '../api'
+import type { Api, MonthlyReportData, Report, ReportData } from '../api'
 import { CenteredSpinner } from '../CenteredSpinner'
 import { Dynamics } from '../Dynamics'
-import { period } from '../format'
+import { monthName, period } from '../format'
+import { MonthlyDynamics } from '../MonthlyDynamics'
+import { MonthlyReportForm } from '../report/MonthlyReportForm'
 import { ReportForm } from '../report/ReportForm'
 import { type SaveStatus, useAutosave } from '../report/useAutosave'
 import { hapticSuccess } from '../telegram'
@@ -30,7 +32,13 @@ const Notice = ({ status, children }: { status?: 'success' | 'danger'; children:
   </Alert>
 )
 
-const CurrentReport = ({ api, confirm }: Props) => {
+const missingIn = (report: Report) =>
+  report.kind === 'WEEKLY' ? missingFields(report.data) : monthlyMissingFields(report.data)
+
+const title = (report: Report) =>
+  report.kind === 'WEEKLY' ? period(report) : monthName(report.weekStart)
+
+const CurrentReport = ({ api, confirm, load }: Props & { load: () => Promise<Report> }) => {
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
@@ -43,12 +51,12 @@ const CurrentReport = ({ api, confirm }: Props) => {
   }, [invalid])
 
   useEffect(() => {
-    api.currentReport().then(setReport, (e: Error) => setError(e.message))
-  }, [api])
+    load().then(setReport, (e: Error) => setError(e.message))
+  }, [load])
 
   const reportId = report?.id
   const save = useCallback(
-    (data: ReportData) =>
+    (data: ReportData | MonthlyReportData) =>
       reportId === undefined ? Promise.resolve() : api.saveReport(reportId, data),
     [api, reportId],
   )
@@ -59,13 +67,18 @@ const CurrentReport = ({ api, confirm }: Props) => {
 
   const readOnly = report.submittedAt !== null || sending
 
-  const onChange = (data: ReportData) => {
-    setReport({ ...report, data })
+  const onWeeklyChange = (data: ReportData) => {
+    if (report.kind === 'WEEKLY') setReport({ ...report, data })
+    autosave.schedule(data)
+  }
+
+  const onMonthlyChange = (data: MonthlyReportData) => {
+    if (report.kind === 'MONTHLY') setReport({ ...report, data })
     autosave.schedule(data)
   }
 
   const submit = async () => {
-    const missing = missingFields(report.data)
+    const missing = missingIn(report)
     if (missing.length) return setInvalid(new Set(missing))
     if (!(await confirm(CONFIRM_MESSAGE))) return
     setSending(true)
@@ -83,7 +96,7 @@ const CurrentReport = ({ api, confirm }: Props) => {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h1>{period(report)}</h1>
+        <h1>{title(report)}</h1>
         {report.submittedAt === null && autosave.status !== 'idle' && (
           <Chip size="sm" color={autosave.status === 'error' ? 'danger' : 'default'}>
             {SAVE_LABEL[autosave.status]}
@@ -101,13 +114,22 @@ const CurrentReport = ({ api, confirm }: Props) => {
           </Alert>
         </div>
       )}
-      {report.submittedAt === null && (
+      {report.submittedAt === null && report.kind === 'WEEKLY' && (
         <ReportForm
           data={report.data}
           plan={report.plan}
           readOnly={readOnly}
           invalid={invalid}
-          onChange={onChange}
+          onChange={onWeeklyChange}
+        />
+      )}
+      {report.submittedAt === null && report.kind === 'MONTHLY' && (
+        <MonthlyReportForm
+          data={report.data}
+          plan={report.plan}
+          readOnly={readOnly}
+          invalid={invalid}
+          onChange={onMonthlyChange}
         />
       )}
       {report.submittedAt === null && (
@@ -119,14 +141,25 @@ const CurrentReport = ({ api, confirm }: Props) => {
   )
 }
 
-const Progress = ({ api }: { api: Api }) => {
-  const [reports, setReports] = useState<Report[] | null>(null)
+const useList = <T,>(load: () => Promise<T[]>) => {
+  const [items, setItems] = useState<T[] | null>(null)
   useEffect(() => {
-    api.listReports().then(setReports)
-  }, [api])
-  if (!reports) return <CenteredSpinner />
-  if (!reports.length) return <Notice>Отчётов пока нет</Notice>
-  return <Dynamics reports={reports} />
+    load().then(setItems)
+  }, [load])
+  return items
+}
+
+const Progress = ({ api }: { api: Api }) => {
+  const weekly = useList(api.listReports)
+  const monthly = useList(api.listMonthlyReports)
+  if (!weekly || !monthly) return <CenteredSpinner />
+  if (!weekly.length && !monthly.length) return <Notice>Отчётов пока нет</Notice>
+  return (
+    <>
+      {monthly.length > 0 && <MonthlyDynamics reports={monthly} />}
+      {weekly.length > 0 && <Dynamics reports={weekly} />}
+    </>
+  )
 }
 
 export const ClientApp = ({ api, confirm }: Props) => (
@@ -138,6 +171,10 @@ export const ClientApp = ({ api, confirm }: Props) => (
             Эта неделя
             <Tabs.Indicator />
           </Tabs.Tab>
+          <Tabs.Tab id="month">
+            Месяц
+            <Tabs.Indicator />
+          </Tabs.Tab>
           <Tabs.Tab id="progress">
             Прогресс
             <Tabs.Indicator />
@@ -145,7 +182,10 @@ export const ClientApp = ({ api, confirm }: Props) => (
         </Tabs.List>
       </Tabs.ListContainer>
       <Tabs.Panel id="current" className="flex flex-col gap-3">
-        <CurrentReport api={api} confirm={confirm} />
+        <CurrentReport api={api} confirm={confirm} load={api.currentReport} />
+      </Tabs.Panel>
+      <Tabs.Panel id="month" className="flex flex-col gap-3">
+        <CurrentReport api={api} confirm={confirm} load={api.currentMonthlyReport} />
       </Tabs.Panel>
       <Tabs.Panel id="progress" className="flex flex-col gap-3">
         <Progress api={api} />

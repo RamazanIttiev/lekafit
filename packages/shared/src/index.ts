@@ -73,7 +73,10 @@ export const FEEDBACK = [
 
 export type MetricKey = (typeof METRICS)[number]['key']
 export type MeasureKey = (typeof MEASURES)[number]['key']
-export type Unit = (typeof METRICS)[number]['unit'] | (typeof MEASURES)[number]['unit']
+export type Unit =
+  | (typeof METRICS)[number]['unit']
+  | (typeof MEASURES)[number]['unit']
+  | (typeof MONTHLY_METRICS)[number]['unit']
 
 const numericText = z.string().max(20).default('')
 const text = z.string().max(4000).default('')
@@ -146,7 +149,7 @@ export const parseNumber = (value: string | null | undefined): number | null => 
 const formatNumber = (n: number, digits: number): string =>
   Number(n.toFixed(digits)).toLocaleString('ru-RU')
 
-const WHOLE_UNITS: readonly Unit[] = ['ккал', 'шагов', 'раз']
+const WHOLE_UNITS: readonly Unit[] = ['ккал', 'шагов', 'раз', 'мин']
 
 export const formatDelta = ({
   from,

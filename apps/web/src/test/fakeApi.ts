@@ -1,5 +1,14 @@
-import { type Plan, type ReportData, reportDataSchema, WELLBEING } from '@lekafit/shared'
-import type { Api, Report } from '../api'
+import {
+  MONTHLY_MEASURES,
+  MONTHLY_METRICS,
+  MONTHLY_WELLBEING,
+  monthlyReportDataSchema,
+  type Plan,
+  type ReportData,
+  reportDataSchema,
+  WELLBEING,
+} from '@lekafit/shared'
+import type { Api, MonthlyReport, MonthlyReportData, WeeklyReport } from '../api'
 
 export const aPlan = (overrides: Partial<Plan> = {}): Plan => ({
   cal: 1800,
@@ -11,8 +20,9 @@ export const aPlan = (overrides: Partial<Plan> = {}): Plan => ({
   ...overrides,
 })
 
-export const aReport = (overrides: Partial<Report> = {}): Report => ({
+export const aReport = (overrides: Partial<WeeklyReport> = {}): WeeklyReport => ({
   id: 1,
+  kind: 'WEEKLY',
   weekStart: '2026-11-09',
   weekEnd: '2026-11-15',
   data: reportDataSchema.parse({}),
@@ -21,13 +31,30 @@ export const aReport = (overrides: Partial<Report> = {}): Report => ({
   ...overrides,
 })
 
+export const aMonthlyReport = (overrides: Partial<MonthlyReport> = {}): MonthlyReport => ({
+  id: 2,
+  kind: 'MONTHLY',
+  weekStart: '2026-11-01',
+  weekEnd: '2026-11-30',
+  data: monthlyReportDataSchema.parse({}),
+  plan: aPlan(),
+  submittedAt: null,
+  ...overrides,
+})
+
 export const dataWith = (input: object): ReportData => reportDataSchema.parse(input)
+export const monthlyDataWith = (input: object): MonthlyReportData =>
+  monthlyReportDataSchema.parse(input)
+
+const numbers = (keys: readonly { key: string }[]) =>
+  Object.fromEntries(keys.map((k) => [k.key, '1']))
 
 export const filledData = (): ReportData => {
-  const numbers = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, '1']))
-  const measures = numbers(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'])
+  const measures = numbers(
+    ['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'].map((key) => ({ key })),
+  )
   return reportDataSchema.parse({
-    fact: numbers(['cal', 'protein', 'fat', 'carb', 'steps', 'training']),
+    fact: numbers(['cal', 'protein', 'fat', 'carb', 'steps', 'training'].map((key) => ({ key }))),
     prev: measures,
     now: measures,
     wellbeing: {
@@ -38,10 +65,31 @@ export const filledData = (): ReportData => {
   })
 }
 
-export const fakeApi = (options: { current?: Report; history?: Report[] } = {}) => {
+export const filledMonthlyData = (): MonthlyReportData =>
+  monthlyReportDataSchema.parse({
+    fact: numbers(MONTHLY_METRICS),
+    now: numbers(MONTHLY_MEASURES),
+    wellbeing: Object.fromEntries(MONTHLY_WELLBEING.map((w) => [w.key, w.options[0]])),
+    feedback: { wins: 'ок', issues: 'ок', changes: 'ок', questions: 'ок' },
+  })
+
+export const fakeApi = (
+  options: {
+    current?: WeeklyReport
+    monthly?: MonthlyReport
+    history?: WeeklyReport[]
+    monthlyHistory?: MonthlyReport[]
+  } = {},
+) => {
   const saves: ReportData[] = []
-  const state = { current: options.current ?? aReport() }
+  const monthlySaves: MonthlyReportData[] = []
+  const state = {
+    current: options.current ?? aReport(),
+    monthly: options.monthly ?? aMonthlyReport(),
+  }
   const history = options.history ?? []
+  const monthlyHistory = options.monthlyHistory ?? []
+  const now = () => new Date().toISOString()
   const api: Api = {
     me: async () => ({
       id: 1,
@@ -52,24 +100,34 @@ export const fakeApi = (options: { current?: Report; history?: Report[] } = {}) 
       role: 'CLIENT',
     }),
     currentReport: async () => state.current,
-    saveReport: async (_id, data) => {
-      saves.push(data)
-      state.current = { ...state.current, data }
+    currentMonthlyReport: async () => state.monthly,
+    saveReport: async (id, data) => {
+      if (id === state.monthly.id) {
+        const monthly = monthlyReportDataSchema.parse(data)
+        monthlySaves.push(monthly)
+        state.monthly = { ...state.monthly, data: monthly }
+        return state.monthly
+      }
+      const weekly = reportDataSchema.parse(data)
+      saves.push(weekly)
+      state.current = { ...state.current, data: weekly }
       return state.current
     },
-    submitReport: async () => {
-      state.current = {
-        ...state.current,
-        submittedAt: new Date().toISOString(),
+    submitReport: async (id) => {
+      if (id === state.monthly.id) {
+        state.monthly = { ...state.monthly, submittedAt: now() }
+        return state.monthly
       }
+      state.current = { ...state.current, submittedAt: now() }
       return state.current
     },
     listReports: async () => history,
+    listMonthlyReports: async () => monthlyHistory,
     getReport: async (id) => {
       const found = history.find((r) => r.id === id)
       if (!found) throw new Error('not found')
       return found
     },
   }
-  return { api, saves, state }
+  return { api, saves, monthlySaves, state }
 }

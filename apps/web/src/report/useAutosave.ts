@@ -1,13 +1,12 @@
-import type { ReportData } from '@lekafit/shared'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DEBOUNCE_MS = 600
 
-export const useAutosave = (save: (data: ReportData) => Promise<unknown>) => {
+export const useAutosave = <T>(save: (data: T) => Promise<unknown>) => {
   const [status, setStatus] = useState<SaveStatus>('idle')
-  const pending = useRef<ReportData | null>(null)
+  const pending = useRef<T | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const flush = useCallback(async () => {
@@ -27,7 +26,7 @@ export const useAutosave = (save: (data: ReportData) => Promise<unknown>) => {
   }, [save])
 
   const schedule = useCallback(
-    (data: ReportData) => {
+    (data: T) => {
       pending.current = data
       setStatus('saving')
       clearTimeout(timer.current)

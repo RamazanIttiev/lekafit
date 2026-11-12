@@ -1,4 +1,4 @@
-import { planSchema, reportDataSchema } from '@lekafit/shared'
+import { monthlyReportDataSchema, planSchema, reportDataSchema } from '@lekafit/shared'
 import { z } from 'zod'
 
 export const meSchema = z.object({
@@ -10,18 +10,34 @@ export const meSchema = z.object({
   role: z.enum(['CLIENT', 'COACH']),
 })
 
-export const reportSchema = z.object({
+const reportFields = {
   id: z.number(),
   weekStart: z.string(),
   weekEnd: z.string(),
-  data: reportDataSchema,
   plan: planSchema.nullable(),
   submittedAt: z.string().nullable(),
+}
+
+export const weeklyReportSchema = z.object({
+  ...reportFields,
+  kind: z.literal('WEEKLY'),
+  data: reportDataSchema,
 })
 
+export const monthlyReportSchema = z.object({
+  ...reportFields,
+  kind: z.literal('MONTHLY'),
+  data: monthlyReportDataSchema,
+})
+
+export const reportSchema = z.discriminatedUnion('kind', [weeklyReportSchema, monthlyReportSchema])
+
 export type Me = z.infer<typeof meSchema>
-export type Report = z.infer<typeof reportSchema>
-export type ReportData = Report['data']
+export type WeeklyReport = z.infer<typeof weeklyReportSchema>
+export type MonthlyReport = z.infer<typeof monthlyReportSchema>
+export type Report = WeeklyReport | MonthlyReport
+export type ReportData = WeeklyReport['data']
+export type MonthlyReportData = MonthlyReport['data']
 
 export const coachClientSchema = z.object({
   id: z.number(),
@@ -37,29 +53,31 @@ export const clientListItemSchema = coachClientSchema.extend({
 
 export const clientProfileSchema = coachClientSchema.extend({ plan: planSchema.nullable() })
 
-export const coachReportSchema = reportSchema.extend({ client: coachClientSchema })
+export const coachReportSchema = weeklyReportSchema.extend({ client: coachClientSchema })
 
 export type CoachClient = z.infer<typeof coachClientSchema>
 export type ClientListItem = z.infer<typeof clientListItemSchema>
 export type ClientProfile = z.infer<typeof clientProfileSchema>
 export type CoachReport = z.infer<typeof coachReportSchema>
-export type Plan = NonNullable<Report['plan']>
+export type Plan = NonNullable<WeeklyReport['plan']>
 
 export type CoachApi = {
   clients: () => Promise<ClientListItem[]>
   client: (id: number) => Promise<ClientProfile>
   setPlan: (id: number, plan: Plan) => Promise<Plan>
-  clientReports: (id: number) => Promise<Report[]>
+  clientReports: (id: number) => Promise<WeeklyReport[]>
   report: (id: number) => Promise<CoachReport>
   invite: () => Promise<{ url: string }>
 }
 
 export type Api = {
   me: () => Promise<Me>
-  currentReport: () => Promise<Report>
-  saveReport: (id: number, data: ReportData) => Promise<Report>
+  currentReport: () => Promise<WeeklyReport>
+  currentMonthlyReport: () => Promise<MonthlyReport>
+  saveReport: (id: number, data: ReportData | MonthlyReportData) => Promise<Report>
   submitReport: (id: number) => Promise<Report>
-  listReports: () => Promise<Report[]>
+  listReports: () => Promise<WeeklyReport[]>
+  listMonthlyReports: () => Promise<MonthlyReport[]>
   getReport: (id: number) => Promise<Report>
 }
 
@@ -101,11 +119,13 @@ export const httpClient =
 
 export const createApi = (request: Request): Api => ({
   me: () => request('/me', meSchema),
-  currentReport: () => request('/reports/current', reportSchema),
+  currentReport: () => request('/reports/current', weeklyReportSchema),
+  currentMonthlyReport: () => request('/reports/current?kind=monthly', monthlyReportSchema),
   saveReport: (id, data) =>
     request(`/reports/${id}`, reportSchema, { method: 'PATCH', body: { data } }),
   submitReport: (id) => request(`/reports/${id}/submit`, reportSchema, { method: 'POST' }),
-  listReports: () => request('/reports', z.array(reportSchema)),
+  listReports: () => request('/reports', z.array(weeklyReportSchema)),
+  listMonthlyReports: () => request('/reports?kind=monthly', z.array(monthlyReportSchema)),
   getReport: (id) => request(`/reports/${id}`, reportSchema),
 })
 
@@ -114,7 +134,7 @@ export const createCoachApi = (request: Request): CoachApi => ({
   client: (id) => request(`/coach/clients/${id}`, clientProfileSchema),
   setPlan: (id, plan) =>
     request(`/coach/clients/${id}/plan`, planSchema, { method: 'PUT', body: plan }),
-  clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(reportSchema)),
+  clientReports: (id) => request(`/coach/clients/${id}/reports`, z.array(weeklyReportSchema)),
   report: (id) => request(`/coach/reports/${id}`, coachReportSchema),
   invite: () => request('/coach/invite', z.object({ url: z.string() })),
 })

@@ -1,10 +1,10 @@
 import { Card, Table } from '@heroui/react'
-import type { Report } from './api'
+import type { WeeklyReport } from './api'
 import { shortDate } from './format'
 
 const COLUMNS = ['Неделя', 'Вес', 'Талия', 'Ккал', 'Шаги'] as const
 
-export const Dynamics = ({ reports }: { reports: Report[] }) => (
+export const Dynamics = ({ reports }: { reports: WeeklyReport[] }) => (
   <Card>
     <Card.Header>
       <Card.Title>Динамика</Card.Title>
