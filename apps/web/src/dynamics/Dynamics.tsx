@@ -22,7 +22,7 @@ export const Dynamics = ({ reports }: { reports: WeeklyReport[] }) => (
           <Table.Body>
             {reports.map((r) => (
               <Table.Row key={r.id} className="[&_.table__cell]:bg-transparent!">
-                <Table.Cell>{shortDate(r.weekStart)}</Table.Cell>
+                <Table.Cell>{shortDate(r.periodStart)}</Table.Cell>
                 <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
                 <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>
                 <Table.Cell>{r.data.fact.cal || '—'}</Table.Cell>

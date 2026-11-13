@@ -15,7 +15,7 @@ describe('weekly period in Moscow time', () => {
     const wednesdayNightUtc = await startApp({ now: () => new Date(Date.UTC(2026, 10, 18, 22, 0)) })
     const res = await as(wednesdayNightUtc, aClient()).get('/reports/current').expect(200)
     await wednesdayNightUtc.close()
-    expect(res.body.weekStart).toBe('2026-11-16')
+    expect(res.body.periodStart).toBe('2026-11-16')
   })
 })
 
@@ -28,8 +28,8 @@ describe('GET /reports/current', () => {
   it('opens an empty draft for the current week from Thursday onwards', async () => {
     const res = await as(app, aClient()).get('/reports/current').expect(200)
     expect(res.body).toMatchObject({
-      weekStart: '2026-11-09',
-      weekEnd: '2026-11-15',
+      periodStart: '2026-11-09',
+      periodEnd: '2026-11-15',
       submittedAt: null,
       plan: null,
     })
@@ -38,14 +38,14 @@ describe('GET /reports/current', () => {
 
   it('opens the new week on Monday', async () => {
     const res = await as(mondayApp, aClient()).get('/reports/current').expect(200)
-    expect(res.body.weekStart).toBe('2026-11-16')
+    expect(res.body.periodStart).toBe('2026-11-16')
   })
 
   it('opens the same week on its Sunday', async () => {
     const sundayApp = await startApp({ now: () => new Date(Date.UTC(2026, 10, 15, 12)) })
     const res = await as(sundayApp, aClient()).get('/reports/current').expect(200)
     await sundayApp.close()
-    expect(res.body).toMatchObject({ weekStart: '2026-11-09', weekEnd: '2026-11-15' })
+    expect(res.body).toMatchObject({ periodStart: '2026-11-09', periodEnd: '2026-11-15' })
   })
 
   it('does not let the client send last week report in the new week', async () => {
@@ -53,7 +53,7 @@ describe('GET /reports/current', () => {
     const lastWeek = await as(app, client).get('/reports/current')
     const thisWeek = await as(mondayApp, client).get('/reports/current')
     expect(thisWeek.body.id).not.toBe(lastWeek.body.id)
-    expect(thisWeek.body.weekStart).toBe('2026-11-16')
+    expect(thisWeek.body.periodStart).toBe('2026-11-16')
   })
 
   it('returns the same draft on every visit', async () => {
@@ -124,13 +124,13 @@ describe('GET /reports/current', () => {
     const sundayApp = await startApp({ now: () => new Date(Date.UTC(2026, 10, 15, 12)) })
     const sameWeek = await as(sundayApp, client).get('/reports/current')
     await sundayApp.close()
-    expect(sameWeek.body).toMatchObject({ weekStart: '2026-11-09' })
+    expect(sameWeek.body).toMatchObject({ periodStart: '2026-11-09' })
     expect(sameWeek.body.submittedAt).toBeTruthy()
 
     const later = await startApp({ now: () => new Date(2026, 10, 19, 9) })
     const fresh = await as(later, client).get('/reports/current')
     await later.close()
-    expect(fresh.body.weekStart).toBe('2026-11-16')
+    expect(fresh.body.periodStart).toBe('2026-11-16')
     expect(fresh.body.data.prev).toMatchObject({ weight: '71,9', waist: '70', chest: '' })
     expect(fresh.body.data.now.weight).toBe('')
   })
@@ -246,7 +246,7 @@ describe('GET /reports', () => {
     await as(app, aClient()).get('/reports/current')
 
     const res = await as(app, client).get('/reports').expect(200)
-    expect(res.body.map((r: { weekStart: string }) => r.weekStart)).toEqual([
+    expect(res.body.map((r: { periodStart: string }) => r.periodStart)).toEqual([
       '2026-11-16',
       '2026-11-09',
     ])

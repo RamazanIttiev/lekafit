@@ -17,8 +17,8 @@ export const meSchema = z.object({
 
 const reportFields = {
   id: z.number(),
-  weekStart: z.string(),
-  weekEnd: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
   plan: planSchema.nullable(),
   submittedAt: z.string().nullable(),
 }

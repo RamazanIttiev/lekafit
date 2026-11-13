@@ -12,8 +12,10 @@ import type { MonthlyReport, Report, WeeklyReport } from '../reports/reports.rep
 import type { User } from '../users/users.repository'
 
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
-const periodLabel = ({ weekStart, weekEnd }: { weekStart: string; weekEnd: string }) =>
-  weekStart === weekEnd ? shortDate(weekStart) : `${shortDate(weekStart)} — ${shortDate(weekEnd)}`
+const periodLabel = ({ periodStart, periodEnd }: { periodStart: string; periodEnd: string }) =>
+  periodStart === periodEnd
+    ? shortDate(periodStart)
+    : `${shortDate(periodStart)} — ${shortDate(periodEnd)}`
 const plain = (text: string) => text.replace(/[  ]/g, ' ')
 
 const clientName = (user: User) => {
@@ -63,7 +65,7 @@ const sections = (report: Report, client: User): string[][] =>
     ? [
         [
           `📋 Новый отчёт: ${clientName(client)}`,
-          `Неделя ${shortDate(report.weekStart)} — ${shortDate(report.weekEnd)}`,
+          `Неделя ${shortDate(report.periodStart)} — ${shortDate(report.periodEnd)}`,
         ],
         factLines(METRICS, report.data.fact),
         weeklyMeasureLines(report),

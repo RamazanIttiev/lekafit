@@ -104,15 +104,15 @@ export class ReportsService {
     const existing = await this.reports.findForPeriod({
       userId,
       kind: 'WEEKLY',
-      weekStart: period.start,
+      periodStart: period.start,
     })
     if (existing) return existing
     const previous = await this.reports.lastSubmitted(userId, 'WEEKLY')
     return this.reports.create({
       userId,
       kind: 'WEEKLY',
-      weekStart: period.start,
-      weekEnd: period.end,
+      periodStart: period.start,
+      periodEnd: period.end,
       data: weeklyPrefill(previous),
     })
   }
@@ -128,8 +128,8 @@ export class ReportsService {
     return this.reports.create({
       userId,
       kind: 'MONTHLY',
-      weekStart: period.start,
-      weekEnd: period.end,
+      periodStart: period.start,
+      periodEnd: period.end,
       data: monthlyPrefill(last, await this.reports.firstSubmitted(userId, 'MONTHLY')),
     })
   }

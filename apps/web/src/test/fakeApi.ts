@@ -26,8 +26,8 @@ export const aPlan = (overrides: Partial<Plan> = {}): Plan => ({
 export const aReport = (overrides: Partial<WeeklyReport> = {}): WeeklyReport => ({
   id: 1,
   kind: 'WEEKLY',
-  weekStart: '2026-11-09',
-  weekEnd: '2026-11-15',
+  periodStart: '2026-11-09',
+  periodEnd: '2026-11-15',
   data: reportDataSchema.parse({}),
   plan: aPlan(),
   submittedAt: null,
@@ -37,8 +37,8 @@ export const aReport = (overrides: Partial<WeeklyReport> = {}): WeeklyReport => 
 export const aMonthlyReport = (overrides: Partial<MonthlyReport> = {}): MonthlyReport => ({
   id: 2,
   kind: 'MONTHLY',
-  weekStart: '2026-11-09',
-  weekEnd: '2026-12-09',
+  periodStart: '2026-11-09',
+  periodEnd: '2026-12-09',
   data: monthlyReportDataSchema.parse({}),
   plan: aPlan(),
   submittedAt: null,

@@ -17,8 +17,8 @@ import { ReportPhotoEntity } from './report-photo.entity'
 type ReportFields = {
   id: number
   userId: number
-  weekStart: string
-  weekEnd: string
+  periodStart: string
+  periodEnd: string
   plan: Plan | null
   submittedAt: Date | null
   seenByCoachAt: Date | null
@@ -35,7 +35,7 @@ export type Report = WeeklyReport | MonthlyReport
 
 export type SubmittedSummary = Pick<
   ReportEntity,
-  'userId' | 'kind' | 'weekStart' | 'submittedAt' | 'seenByCoachAt'
+  'userId' | 'kind' | 'periodStart' | 'submittedAt' | 'seenByCoachAt'
 >
 
 const UNIQUE_VIOLATION = '23505'
@@ -120,7 +120,7 @@ export class ReportsRepository {
   async findForPeriod(input: {
     userId: number
     kind: ReportKind
-    weekStart: string
+    periodStart: string
   }): Promise<Report | null> {
     return this.toReport(await this.reports.findOneBy(input))
   }
@@ -129,7 +129,7 @@ export class ReportsRepository {
     return this.toReport(
       await this.reports.findOne({
         where: { userId, kind, submittedAt: IsNull() },
-        order: { weekStart: 'DESC', id: 'DESC' },
+        order: { periodStart: 'DESC', id: 'DESC' },
       }),
     )
   }
@@ -162,8 +162,8 @@ export class ReportsRepository {
   async create(input: {
     userId: number
     kind: ReportKind
-    weekStart: string
-    weekEnd: string
+    periodStart: string
+    periodEnd: string
     data: ReportData | MonthlyReportData
   }): Promise<Report> {
     try {
@@ -171,9 +171,9 @@ export class ReportsRepository {
     } catch (error) {
       if (!isUniqueViolation(error)) throw error
     }
-    const { userId, kind, weekStart, weekEnd } = input
+    const { userId, kind, periodStart, periodEnd } = input
     const report = await this.toReport(
-      await this.reports.findOneBy({ userId, kind, weekStart, weekEnd }),
+      await this.reports.findOneBy({ userId, kind, periodStart, periodEnd }),
     )
     if (!report) throw new Error('Report was not created')
     return report
@@ -193,7 +193,7 @@ export class ReportsRepository {
   async listFor(userId: number, kind: ReportKind): Promise<Report[]> {
     const entities = await this.reports.find({
       where: { userId, kind },
-      order: { weekStart: 'DESC', id: 'DESC' },
+      order: { periodStart: 'DESC', id: 'DESC' },
     })
     const reports = await Promise.all(entities.map((e) => this.toReport(e)))
     return reports.filter((r): r is Report => r !== null)
@@ -202,7 +202,7 @@ export class ReportsRepository {
   async submittedFor(userId: number): Promise<Report[]> {
     const entities = await this.reports.find({
       where: { userId, submittedAt: Not(IsNull()) },
-      order: { weekStart: 'DESC', id: 'DESC' },
+      order: { periodStart: 'DESC', id: 'DESC' },
     })
     const reports = await Promise.all(entities.map((e) => this.toReport(e)))
     return reports.filter((r): r is Report => r !== null)
@@ -210,7 +210,7 @@ export class ReportsRepository {
 
   async submittedSummaries(): Promise<SubmittedSummary[]> {
     return this.reports.find({
-      select: { userId: true, kind: true, weekStart: true, submittedAt: true, seenByCoachAt: true },
+      select: { userId: true, kind: true, periodStart: true, submittedAt: true, seenByCoachAt: true },
       where: { submittedAt: Not(IsNull()) },
     })
   }

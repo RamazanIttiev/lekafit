@@ -11,7 +11,7 @@ import {
 import { UserEntity } from '../users/user.entity'
 
 @Entity('reports')
-@Unique('reports_user_kind_period', ['userId', 'kind', 'weekStart', 'weekEnd'])
+@Unique('reports_user_kind_period', ['userId', 'kind', 'periodStart', 'periodEnd'])
 export class ReportEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number
@@ -26,11 +26,11 @@ export class ReportEntity {
   @Column({ type: 'varchar', length: 10, default: 'WEEKLY' })
   kind!: ReportKind
 
-  @Column({ name: 'week_start', type: 'date' })
-  weekStart!: string
+  @Column({ name: 'period_start', type: 'date' })
+  periodStart!: string
 
-  @Column({ name: 'week_end', type: 'date' })
-  weekEnd!: string
+  @Column({ name: 'period_end', type: 'date' })
+  periodEnd!: string
 
   @Column({ type: 'jsonb' })
   data!: unknown

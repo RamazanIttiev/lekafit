@@ -118,8 +118,8 @@ describe('monthly progress', () => {
   it('shows monthly weight, waist and change since the start in the Progress tab', async () => {
     const past = aMonthlyReport({
       id: 30,
-      weekStart: '2026-10-09',
-      weekEnd: '2026-11-09',
+      periodStart: '2026-10-09',
+      periodEnd: '2026-11-09',
       submittedAt: '2026-11-01T09:00:00.000Z',
       data: monthlyDataWith({ baseline: { weight: '75' }, now: { weight: '72', waist: '68' } }),
     })

@@ -163,7 +163,10 @@ describe('client report history', () => {
 
     const res = await coach().get(`/coach/clients/${id}/reports`).expect(200)
     expect(res.body).toHaveLength(1)
-    expect(res.body[0]).toMatchObject({ weekStart: '2026-11-09', data: { now: { weight: '70' } } })
+    expect(res.body[0]).toMatchObject({
+      periodStart: '2026-11-09',
+      data: { now: { weight: '70' } },
+    })
   })
 
   it('opens a single report with the client name and marks it as reviewed', async () => {

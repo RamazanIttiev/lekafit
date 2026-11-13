@@ -129,7 +129,7 @@ export class PhotosService {
       photo,
       fileName: photoFileName({
         clientName,
-        periodStart: report.weekStart,
+        periodStart: report.periodStart,
         angle: target.angle,
         mime: photo.mime,
       }),

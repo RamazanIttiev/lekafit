@@ -146,15 +146,15 @@ describe('client page', () => {
         reports: [
           aReport({
             id: 2,
-            weekStart: '2026-11-09',
-            weekEnd: '2026-11-15',
+            periodStart: '2026-11-09',
+            periodEnd: '2026-11-15',
             submittedAt: '2026-11-10T09:00:00.000Z',
             data: dataWith({ now: { weight: '71,9' }, fact: { cal: '1850' } }),
           }),
           aReport({
             id: 1,
-            weekStart: '2026-11-02',
-            weekEnd: '2026-11-08',
+            periodStart: '2026-11-02',
+            periodEnd: '2026-11-08',
             submittedAt: '2026-11-10T09:00:00.000Z',
             data: dataWith({ now: { weight: '72,4' }, fact: { cal: '1900' } }),
           }),

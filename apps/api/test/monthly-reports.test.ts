@@ -38,8 +38,8 @@ describe('GET /reports/current?kind=monthly', () => {
     const res = await as(app, aClient()).get(MONTHLY).expect(200)
     expect(res.body).toMatchObject({
       kind: 'MONTHLY',
-      weekStart: '2026-11-12',
-      weekEnd: '2026-11-12',
+      periodStart: '2026-11-12',
+      periodEnd: '2026-11-12',
       submittedAt: null,
     })
     expect(res.body.data.fact.cardio).toBe('')
@@ -57,7 +57,7 @@ describe('GET /reports/current?kind=monthly', () => {
     const lateEveningUtc = await startApp({ now: () => new Date(Date.UTC(2026, 10, 12, 22, 30)) })
     const res = await as(lateEveningUtc, aClient()).get(MONTHLY).expect(200)
     await lateEveningUtc.close()
-    expect(res.body.weekStart).toBe('2026-11-13')
+    expect(res.body.periodStart).toBe('2026-11-13')
   })
 
   it('is a separate report from the weekly one', async () => {
@@ -84,7 +84,7 @@ describe('GET /reports/current?kind=monthly', () => {
     const due = await appAt(new Date(2026, 11, 9, 9))
     const res = await as(due, client).get(MONTHLY).expect(200)
     await due.close()
-    expect(res.body).toMatchObject({ weekStart: '2026-11-09', weekEnd: '2026-12-09' })
+    expect(res.body).toMatchObject({ periodStart: '2026-11-09', periodEnd: '2026-12-09' })
   })
 
   it('opens on the last day of a shorter month', async () => {
@@ -96,7 +96,7 @@ describe('GET /reports/current?kind=monthly', () => {
     const due = await appAt(new Date(2027, 1, 28, 9))
     const res = await as(due, client).get(MONTHLY).expect(200)
     await due.close()
-    expect(res.body.weekEnd).toBe('2027-02-28')
+    expect(res.body.periodEnd).toBe('2027-02-28')
   })
 
   it('starts the next cycle from the actual submission date when the client is late', async () => {
@@ -109,7 +109,7 @@ describe('GET /reports/current?kind=monthly', () => {
     const due = await appAt(new Date(2027, 0, 15, 9))
     const res = await as(due, client).get(MONTHLY).expect(200)
     await due.close()
-    expect(res.body).toMatchObject({ weekStart: '2026-12-15', weekEnd: '2027-01-15' })
+    expect(res.body).toMatchObject({ periodStart: '2026-12-15', periodEnd: '2027-01-15' })
   })
 
   it('does not block weekly reports while the monthly one is closed', async () => {

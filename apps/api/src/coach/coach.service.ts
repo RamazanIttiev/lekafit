@@ -22,7 +22,7 @@ const summarize = (client: User, reports: SubmittedSummary[]) => ({
   summary: {
     ...client,
     lastReportWeek: latestIsoDate(
-      reports.filter((r) => r.kind === 'WEEKLY').map((r) => r.weekStart),
+      reports.filter((r) => r.kind === 'WEEKLY').map((r) => r.periodStart),
     ),
     hasMonthlyReport: reports.some((r) => r.kind === 'MONTHLY'),
     unseenReports: reports.filter((r) => r.seenByCoachAt === null).length,

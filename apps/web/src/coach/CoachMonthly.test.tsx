@@ -79,7 +79,7 @@ describe('coach: monthly reports', () => {
 describe('coach: monthly photos', () => {
   const withPhotos = aMonthlyReport({
     id: 21,
-    weekStart: '2026-11-09',
+    periodStart: '2026-11-09',
     submittedAt: submitted,
     photos: { front: true, side: true, back: false },
     prevPhotosReportId: 11,

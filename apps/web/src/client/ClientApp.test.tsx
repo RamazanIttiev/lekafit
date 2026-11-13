@@ -195,8 +195,8 @@ describe('report history', () => {
   it('shows weekly dynamics in the Progress tab', async () => {
     const past = aReport({
       id: 7,
-      weekStart: '2026-11-02',
-      weekEnd: '2026-11-08',
+      periodStart: '2026-11-02',
+      periodEnd: '2026-11-08',
       submittedAt: '2026-11-10T09:00:00.000Z',
       data: dataWith({ now: { weight: '82', waist: '65' }, fact: { cal: '1200', steps: '12000' } }),
     })
