@@ -12,6 +12,8 @@ import { CoachService } from './coach/coach.service'
 import { type AppConfig, CONFIG } from './config'
 import { dataSourceOptions, entities } from './data-source'
 import { MeController } from './me.controller'
+import { RemindersScheduler } from './reminders/reminders.scheduler'
+import { RemindersService } from './reminders/reminders.service'
 import { PhotoDownloadsController } from './reports/photo-downloads.controller'
 import { PhotosRepository } from './reports/photos.repository'
 import { MAX_PHOTO_BYTES, PHOTO_TYPES, PhotosService } from './reports/photos.service'
@@ -47,6 +49,8 @@ export const createApp = async (
       PhotosService,
       CoachService,
       CoachNotifier,
+      RemindersService,
+      RemindersScheduler,
       overrides.telegram
         ? { provide: TELEGRAM, useValue: overrides.telegram }
         : { provide: TELEGRAM, useClass: GrammyGateway },

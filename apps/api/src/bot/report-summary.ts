@@ -18,7 +18,7 @@ const periodLabel = ({ periodStart, periodEnd }: { periodStart: string; periodEn
     : `${shortDate(periodStart)} — ${shortDate(periodEnd)}`
 const plain = (text: string) => text.replace(/[  ]/g, ' ')
 
-const clientName = (user: User) => {
+export const clientName = (user: User) => {
   const name = [user.firstName, user.lastName].filter(Boolean).join(' ')
   return user.username ? `${name} (@${user.username})` : name
 }

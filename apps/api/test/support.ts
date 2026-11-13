@@ -94,3 +94,12 @@ export const seedPlan = (telegramId: number, plan: Record<string, number | null>
     const user = await ds.getRepository(UserEntity).findOneByOrFail({ telegramId })
     await ds.getRepository(PlanEntity).upsert({ userId: user.id, ...plan }, ['userId'])
   })
+
+export const seedSubmittedReport = (
+  telegramId: number,
+  report: { kind: 'WEEKLY' | 'MONTHLY'; periodStart: string; periodEnd: string; submittedAt: Date },
+) =>
+  withDataSource(async (ds) => {
+    const user = await ds.getRepository(UserEntity).findOneByOrFail({ telegramId })
+    await ds.getRepository(ReportEntity).insert({ userId: user.id, data: {}, ...report })
+  })
