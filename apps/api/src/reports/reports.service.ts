@@ -24,7 +24,14 @@ import { type MonthlyReport, type Report, ReportsRepository } from './reports.re
 export const REPORT_SUBMITTED = Symbol('REPORT_SUBMITTED')
 export type ReportSubmittedListener = (report: Report) => Promise<void>
 
-const weeklyPeriod = (now: Date) => weekRange(moscowToday(now))
+const WEEKS: Record<string, number> = { current: 0, previous: -7 }
+
+const weeklyPeriod = (now: Date, weekQuery: string | undefined) => {
+  const offsetDays = WEEKS[weekQuery ?? 'current']
+  if (offsetDays === undefined) throw new BadRequestException('Unknown week')
+  const today = moscowToday(now)
+  return weekRange(new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetDays))
+}
 
 const KINDS_BY_QUERY: Record<string, ReportKind> = { weekly: 'WEEKLY', monthly: 'MONTHLY' }
 
@@ -94,20 +101,24 @@ export class ReportsService {
     @Inject(REPORT_SUBMITTED) private readonly onSubmitted: ReportSubmittedListener,
   ) {}
 
-  async current(userId: number, kindQuery?: string): Promise<Report> {
+  async current(userId: number, kindQuery?: string, weekQuery?: string): Promise<Report> {
     const kind = parseKind(kindQuery)
-    return kind === 'WEEKLY' ? this.currentWeekly(userId) : this.currentMonthly(userId)
+    return kind === 'WEEKLY' ? this.currentWeekly(userId, weekQuery) : this.currentMonthly(userId)
   }
 
-  private async currentWeekly(userId: number): Promise<Report> {
-    const period = weeklyPeriod(this.config.now())
+  private async currentWeekly(userId: number, weekQuery?: string): Promise<Report> {
+    const period = weeklyPeriod(this.config.now(), weekQuery)
     const existing = await this.reports.findForPeriod({
       userId,
       kind: 'WEEKLY',
       periodStart: period.start,
     })
     if (existing) return existing
-    const previous = await this.reports.lastSubmitted(userId, 'WEEKLY')
+    const previous = await this.reports.lastSubmittedBefore({
+      userId,
+      kind: 'WEEKLY',
+      periodStart: period.start,
+    })
     return this.reports.create({
       userId,
       kind: 'WEEKLY',

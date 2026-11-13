@@ -2,6 +2,7 @@ import { Tabs } from '@heroui/react'
 import type { Api } from '../api'
 import { CurrentReport } from './components/CurrentReport'
 import { Progress } from './components/Progress'
+import { WeeklyReport } from './components/WeeklyReport'
 
 type Props = { api: Api; confirm: (message: string) => Promise<boolean> }
 
@@ -24,13 +25,13 @@ export const ClientApp = ({ api, confirm }: Props) => (
           </Tabs.Tab>
         </Tabs.List>
       </Tabs.ListContainer>
-      <Tabs.Panel id="current" className="flex flex-col gap-3">
-        <CurrentReport api={api} confirm={confirm} load={api.currentReport} />
+      <Tabs.Panel id="current" className="flex flex-col gap-3 p-0">
+        <WeeklyReport api={api} confirm={confirm} />
       </Tabs.Panel>
-      <Tabs.Panel id="month" className="flex flex-col gap-3">
+      <Tabs.Panel id="month" className="flex flex-col gap-3 p-0">
         <CurrentReport api={api} confirm={confirm} load={api.currentMonthlyReport} />
       </Tabs.Panel>
-      <Tabs.Panel id="progress" className="flex flex-col gap-3">
+      <Tabs.Panel id="progress" className="flex flex-col gap-3 p-0">
         <Progress api={api} />
       </Tabs.Panel>
     </Tabs>

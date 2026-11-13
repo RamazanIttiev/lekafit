@@ -252,3 +252,66 @@ describe('GET /reports', () => {
     ])
   })
 })
+
+describe('GET /reports/current?week=previous', () => {
+  const PREVIOUS = '/reports/current?week=previous'
+
+  it('opens last week in the new week, so the client can still send it', async () => {
+    const res = await as(mondayApp, aClient()).get(PREVIOUS).expect(200)
+    expect(res.body).toMatchObject({
+      kind: 'WEEKLY',
+      periodStart: '2026-11-09',
+      periodEnd: '2026-11-15',
+      submittedAt: null,
+    })
+  })
+
+  it('returns the draft that was opened last week', async () => {
+    const client = aClient()
+    const lastWeek = await as(app, client).get('/reports/current')
+    const previous = await as(mondayApp, client).get(PREVIOUS)
+    expect(previous.body.id).toBe(lastWeek.body.id)
+  })
+
+  it('lets the client fill in and submit last week without touching this week', async () => {
+    const client = aClient()
+    const previous = await as(mondayApp, client).get(PREVIOUS)
+    await as(mondayApp, client)
+      .patch(`/reports/${previous.body.id}`, { data: filledFacts })
+      .expect(200)
+    const sent = await as(mondayApp, client).post(`/reports/${previous.body.id}/submit`).expect(200)
+    expect(sent.body.submittedAt).not.toBeNull()
+    const current = await as(mondayApp, client).get('/reports/current')
+    expect(current.body).toMatchObject({ periodStart: '2026-11-16', submittedAt: null })
+  })
+
+  it('returns last week as sent once it was submitted', async () => {
+    const client = aClient()
+    const lastWeek = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${lastWeek.body.id}/submit`).expect(200)
+    const previous = await as(mondayApp, client).get(PREVIOUS)
+    expect(previous.body.submittedAt).not.toBeNull()
+  })
+
+  it('prefills "before" measurements from the report sent before that week', async () => {
+    const client = aClient()
+    const earlierApp = await startApp({ now: () => new Date(2026, 10, 4, 9) })
+    const earlier = await as(earlierApp, client).get('/reports/current')
+    await as(earlierApp, client)
+      .patch(`/reports/${earlier.body.id}`, { data: { now: { weight: '80' } } })
+      .expect(200)
+    await as(earlierApp, client).post(`/reports/${earlier.body.id}/submit`).expect(200)
+    await earlierApp.close()
+    const current = await as(mondayApp, client).get('/reports/current')
+    await as(mondayApp, client)
+      .patch(`/reports/${current.body.id}`, { data: { now: { weight: '76' } } })
+      .expect(200)
+    await as(mondayApp, client).post(`/reports/${current.body.id}/submit`).expect(200)
+    const previous = await as(mondayApp, client).get(PREVIOUS)
+    expect(previous.body.data.prev.weight).toBe('80')
+  })
+
+  it('rejects any other week', async () => {
+    await as(mondayApp, aClient()).get('/reports/current?week=next').expect(400)
+  })
+})

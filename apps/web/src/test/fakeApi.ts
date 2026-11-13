@@ -81,6 +81,7 @@ export const filledMonthlyData = (): MonthlyReportData =>
 export const fakeApi = (
   options: {
     current?: WeeklyReport
+    previous?: WeeklyReport
     monthly?: MonthlyReport
     history?: WeeklyReport[]
     monthlyHistory?: MonthlyReport[]
@@ -91,6 +92,8 @@ export const fakeApi = (
   const monthlySaves: MonthlyReportData[] = []
   const state = {
     current: options.current ?? aReport(),
+    previous:
+      options.previous ?? aReport({ id: 3, periodStart: '2026-11-02', periodEnd: '2026-11-08' }),
     monthly: options.monthly ?? aMonthlyReport(),
   }
   const history = options.history ?? []
@@ -105,7 +108,7 @@ export const fakeApi = (
       username: null,
       role: 'CLIENT',
     }),
-    currentReport: async () => state.current,
+    currentReport: async (week) => (week === 'previous' ? state.previous : state.current),
     currentMonthlyReport: async () => state.monthly,
     saveReport: async (id, data) => {
       if (id === state.monthly.id) {
@@ -115,6 +118,10 @@ export const fakeApi = (
         return state.monthly
       }
       const weekly = reportDataSchema.parse(data)
+      if (id === state.previous.id) {
+        state.previous = { ...state.previous, data: weekly }
+        return state.previous
+      }
       saves.push(weekly)
       state.current = { ...state.current, data: weekly }
       return state.current
@@ -123,6 +130,10 @@ export const fakeApi = (
       if (id === state.monthly.id) {
         state.monthly = { ...state.monthly, submittedAt: now() }
         return state.monthly
+      }
+      if (id === state.previous.id) {
+        state.previous = { ...state.previous, submittedAt: now() }
+        return state.previous
       }
       state.current = { ...state.current, submittedAt: now() }
       return state.current

@@ -212,3 +212,61 @@ describe('report history', () => {
     expect(rows[1]).toMatch(/02\.11.*82.*65.*1200.*12000/)
   })
 })
+
+describe('weekly period select', () => {
+  const lastWeek = aReport({ id: 3, periodStart: '2026-11-02', periodEnd: '2026-11-08' })
+
+  const chooseLastWeek = async (screen: Awaited<ReturnType<typeof renderClient>>['screen']) => {
+    await screen.getByRole('button', { name: /Неделя отчёта/ }).click()
+    await screen.getByRole('option', { name: 'Прошлая неделя' }).click()
+  }
+
+  it('starts on the current week', async () => {
+    const { screen } = await renderClient({ previous: lastWeek })
+    await expect.element(screen.getByText('09.11 — 15.11')).toBeVisible()
+    await expect
+      .element(screen.getByRole('button', { name: /Неделя отчёта/ }))
+      .toHaveTextContent('Текущая неделя')
+  })
+
+  it('opens last week from the select', async () => {
+    const { screen } = await renderClient({ previous: lastWeek })
+    await chooseLastWeek(screen)
+    await expect.element(screen.getByText('02.11 — 08.11')).toBeVisible()
+  })
+
+  it('lets the client send last week and shows the usual sent message', async () => {
+    const { screen, state } = await renderClient({
+      previous: aReport({ ...lastWeek, data: filledData() }),
+    })
+    await chooseLastWeek(screen)
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+    expect(state.previous.submittedAt).not.toBeNull()
+    expect(state.current.submittedAt).toBeNull()
+  })
+
+  it('shows last week read-only when it was already sent', async () => {
+    const { screen } = await renderClient({
+      previous: aReport({ ...lastWeek, submittedAt: '2026-11-08T09:00:00.000Z' }),
+    })
+    await chooseLastWeek(screen)
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+  })
+
+  it('goes back to the current week', async () => {
+    const { screen } = await renderClient({ previous: lastWeek })
+    await chooseLastWeek(screen)
+    await screen.getByRole('button', { name: /Неделя отчёта/ }).click()
+    await screen.getByRole('option', { name: 'Текущая неделя' }).click()
+    await expect.element(screen.getByText('09.11 — 15.11')).toBeVisible()
+  })
+
+  it('is not offered for the monthly report', async () => {
+    const { screen } = await renderClient()
+    await screen.getByRole('tab', { name: 'Месяц' }).click()
+    await expect
+      .element(screen.getByRole('button', { name: /Неделя отчёта/ }))
+      .not.toBeInTheDocument()
+  })
+})

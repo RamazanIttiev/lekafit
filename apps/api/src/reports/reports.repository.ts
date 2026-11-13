@@ -155,6 +155,20 @@ export class ReportsRepository {
     return this.submittedEdge(userId, kind, 'DESC')
   }
 
+  async lastSubmittedBefore(input: {
+    userId: number
+    kind: ReportKind
+    periodStart: string
+  }): Promise<Report | null> {
+    const { userId, kind, periodStart } = input
+    return this.toReport(
+      await this.reports.findOne({
+        where: { userId, kind, submittedAt: Not(IsNull()), periodStart: LessThan(periodStart) },
+        order: { periodStart: 'DESC', id: 'DESC' },
+      }),
+    )
+  }
+
   firstSubmitted(userId: number, kind: ReportKind): Promise<Report | null> {
     return this.submittedEdge(userId, kind, 'ASC')
   }

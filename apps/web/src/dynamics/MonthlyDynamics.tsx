@@ -15,7 +15,7 @@ export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
         <Table.Content aria-label="Динамика по месяцам">
           <Table.Header className="bg-transparent">
             {COLUMNS.map((c, i) => (
-              <Table.Column key={c} isRowHeader={i === 0}>
+              <Table.Column key={c} isRowHeader={i === 0} className={'text-center p-1'}>
                 {c}
               </Table.Column>
             ))}
@@ -23,16 +23,16 @@ export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
           <Table.Body>
             {reports.map((r) => (
               <Table.Row key={r.id} className="[&_.table__cell]:bg-transparent!">
-                <Table.Cell>{period(r)}</Table.Cell>
-                <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
-                <Table.Cell>
+                <Table.Cell className={''}>{period(r)}</Table.Cell>
+                <Table.Cell className={'text-center'}>{r.data.now.weight || '—'}</Table.Cell>
+                <Table.Cell className={'text-center'}>
                   {formatDelta({
                     from: parseNumber(r.data.baseline.weight),
                     to: parseNumber(r.data.now.weight),
                     unit: 'кг',
                   })}
                 </Table.Cell>
-                <Table.Cell>{r.data.now.waist || '—'}</Table.Cell>
+                <Table.Cell className={'text-center'}>{r.data.now.waist || '—'}</Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>

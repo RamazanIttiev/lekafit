@@ -85,7 +85,7 @@ export type CoachApi = {
 
 export type Api = {
   me: () => Promise<Me>
-  currentReport: () => Promise<WeeklyReport>
+  currentReport: (week?: 'previous') => Promise<WeeklyReport>
   currentMonthlyReport: () => Promise<MonthlyReport>
   saveReport: (id: number, data: ReportData | MonthlyReportData) => Promise<Report>
   submitReport: (id: number) => Promise<Report>
@@ -153,7 +153,8 @@ export const httpClient =
 
 export const createApi = (request: Request, fetchBlob: FetchBlob): Api => ({
   me: () => request('/me', meSchema),
-  currentReport: () => request('/reports/current', weeklyReportSchema),
+  currentReport: (week) =>
+    request(`/reports/current${week ? `?week=${week}` : ''}`, weeklyReportSchema),
   currentMonthlyReport: () => request('/reports/current?kind=monthly', monthlyReportSchema),
   saveReport: (id, data) =>
     request(`/reports/${id}`, reportSchema, { method: 'PATCH', body: { data } }),

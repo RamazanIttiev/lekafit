@@ -35,8 +35,12 @@ export class ReportsController {
   }
 
   @Get('current')
-  current(@CurrentUser() user: User, @Query('kind') kind?: string) {
-    return this.reports.current(user.id, kind)
+  current(
+    @CurrentUser() user: User,
+    @Query('kind') kind?: string,
+    @Query('week') week?: string,
+  ) {
+    return this.reports.current(user.id, kind, week)
   }
 
   @Get(':id')
