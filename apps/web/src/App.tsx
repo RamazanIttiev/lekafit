@@ -2,6 +2,7 @@ import { Alert } from '@heroui/react'
 import { useEffect, useState } from 'react'
 import type { Api, CoachApi, Me } from './api'
 import { ClientApp } from './client/ClientApp'
+import type { ClientTab } from './client/tab'
 import { CoachApp } from './coach/CoachApp'
 import { CenteredSpinner } from './components/CenteredSpinner'
 import type { BackButton } from './telegram'
@@ -11,6 +12,7 @@ type Props = {
   coachApi: CoachApi
   confirm: (message: string) => Promise<boolean>
   initialRoute: string
+  initialTab?: ClientTab | undefined
   backButton: BackButton
   share: (url: string, text: string) => void
   download: (url: string, fileName: string) => void
@@ -21,6 +23,7 @@ export const App = ({
   coachApi,
   confirm,
   initialRoute,
+  initialTab,
   backButton,
   share,
   download,
@@ -51,5 +54,5 @@ export const App = ({
         download={download}
       />
     )
-  return <ClientApp api={api} confirm={confirm} />
+  return <ClientApp api={api} confirm={confirm} initialTab={initialTab} />
 }

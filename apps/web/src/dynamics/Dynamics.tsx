@@ -9,7 +9,7 @@ export const Dynamics = ({ reports }: { reports: WeeklyReport[] }) => (
     <Card.Header>
       <Card.Title>Динамика по неделям</Card.Title>
     </Card.Header>
-    <Table className="bg-transparent shadow-none [&_.table__cell]:bg-transparent [&_.table__header]:bg-transparent [&_.table__column]:bg-transparent [&_.table__row]:bg-transparent [&_.table__body]:bg-transparent">
+    <Table className="bg-transparent shadow-none">
       <Table.ScrollContainer>
         <Table.Content aria-label="Динамика">
           <Table.Header className="bg-transparent">

@@ -1,4 +1,4 @@
-import { Label, ListBox, Select } from '@heroui/react'
+import { ListBox, Select } from '@heroui/react'
 import { useCallback, useState } from 'react'
 import type { Api } from '../../api'
 import { CurrentReport } from './CurrentReport'
@@ -22,6 +22,7 @@ export const WeeklyReport = ({ api, confirm }: Props) => {
   return (
     <>
       <Select
+        aria-label="Неделя отчёта"
         selectedKey={week}
         onSelectionChange={(key) => setWeek(WEEKS.find((w) => w.key === key)?.key ?? 'current')}
       >

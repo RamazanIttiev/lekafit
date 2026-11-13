@@ -1,6 +1,7 @@
 import { monthlyDueDate, weekRange } from '@lekafit/shared'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { clientName } from '../bot/report-summary'
+import { type ReportTab, reportTabUrl } from '../bot/report-tab-url'
 import { TELEGRAM, type TelegramGateway } from '../bot/telegram.gateway'
 import { type AppConfig, CONFIG } from '../config'
 import { moscowClock, moscowIsoDate, moscowToday, previousDay } from '../reports/moscow'
@@ -10,6 +11,11 @@ import { type User, UsersRepository } from '../users/users.repository'
 const SUNDAY = 0
 const EVENING_HOUR = 21
 const MORNING_HOUR = 8
+
+const TAB_BUTTONS: Record<ReportTab, string> = {
+  week: '📋 Недельный отчёт',
+  month: '📅 Месячный отчёт',
+}
 
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
 
@@ -62,16 +68,26 @@ export class RemindersService {
         !summaries.some(
           (s) => s.userId === client.id && s.kind === 'WEEKLY' && s.periodStart === weekStart,
         )
-          ? ['Сегодня последний день недели — не забудьте отправить недельный отчёт.']
+          ? [
+              {
+                tab: 'week' as const,
+                text: 'Сегодня последний день недели — не забудьте отправить недельный отчёт.',
+              },
+            ]
           : []
       const last = lastMonthlySubmissionDate(summaries, client.id)
       const monthly =
         last && previousDay(monthlyDueDate(last)) === clock.date
-          ? ['Завтра откроется месячный отчёт — подготовьте замеры и фото.']
+          ? [
+              {
+                tab: 'month' as const,
+                text: 'Завтра откроется месячный отчёт — подготовьте замеры и фото.',
+              },
+            ]
           : []
-      return [...weekly, ...monthly].map((text) => ({ client, text }))
+      return [...weekly, ...monthly].map((reminder) => ({ client, ...reminder }))
     })
-    await Promise.all(messages.map(({ client, text }) => this.remind(client, text)))
+    await Promise.all(messages.map(({ client, tab, text }) => this.remind(client, { tab, text })))
   }
 
   private async morning(today: string): Promise<void> {
@@ -87,18 +103,24 @@ export class RemindersService {
     })
     await Promise.all(
       overdue.map(({ client }) =>
-        this.remind(client, 'Ваш месячный отчёт уже открыт — пора его отправить.'),
+        this.remind(client, {
+          tab: 'month',
+          text: 'Ваш месячный отчёт уже открыт — пора его отправить.',
+        }),
       ),
     )
     await this.digest(overdue)
   }
 
-  private async remind(client: User, text: string): Promise<void> {
+  private async remind(client: User, reminder: { tab: ReportTab; text: string }): Promise<void> {
     try {
       await this.telegram.send({
         chatId: client.telegramId,
-        text,
-        webAppButton: { text: 'Открыть отчёт', url: this.config.webAppUrl },
+        text: reminder.text,
+        webAppButton: {
+          text: TAB_BUTTONS[reminder.tab],
+          url: reportTabUrl(this.config.webAppUrl, reminder.tab),
+        },
       })
     } catch (error) {
       this.logger.error(`Reminder failed for client ${client.id}: ${String(error)}`)

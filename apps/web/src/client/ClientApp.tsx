@@ -3,12 +3,17 @@ import type { Api } from '../api'
 import { CurrentReport } from './components/CurrentReport'
 import { Progress } from './components/Progress'
 import { WeeklyReport } from './components/WeeklyReport'
+import type { ClientTab } from './tab'
 
-type Props = { api: Api; confirm: (message: string) => Promise<boolean> }
+type Props = {
+  api: Api
+  confirm: (message: string) => Promise<boolean>
+  initialTab?: ClientTab | undefined
+}
 
-export const ClientApp = ({ api, confirm }: Props) => (
+export const ClientApp = ({ api, confirm, initialTab = 'current' }: Props) => (
   <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
-    <Tabs variant="primary">
+    <Tabs variant="primary" defaultSelectedKey={initialTab}>
       <Tabs.ListContainer>
         <Tabs.List aria-label="Отчёты">
           <Tabs.Tab id="current">

@@ -69,8 +69,8 @@ describe('weekly reminder', () => {
     expect(toClient(client)).toHaveLength(1)
     expect(toClient(client)[0]?.text).toContain('недельный отчёт')
     expect(toClient(client)[0]?.webAppButton).toEqual({
-      text: 'Открыть отчёт',
-      url: 'https://example.test',
+      text: '📋 Недельный отчёт',
+      url: 'https://example.test/?tab=week',
     })
   })
 
@@ -166,6 +166,10 @@ describe('monthly reminder', () => {
     await tickAt('2026-11-12T21:00:00')
     expect(toClient(client)).toHaveLength(1)
     expect(toClient(client)[0]?.text).toContain('Завтра откроется месячный отчёт')
+    expect(toClient(client)[0]?.webAppButton).toEqual({
+      text: '📅 Месячный отчёт',
+      url: 'https://example.test/?tab=month',
+    })
   })
 
   it('clamps the opening day to the end of a shorter month', async () => {
@@ -193,6 +197,7 @@ describe('monthly reminder', () => {
     await tickAt('2026-11-20T08:00:00')
     expect(toClient(client)).toHaveLength(3)
     expect(toClient(client)[0]?.text).toContain('месячный отчёт уже открыт')
+    expect(toClient(client)[0]?.webAppButton?.url).toBe('https://example.test/?tab=month')
   })
 
   it('does not follow up before the report opens or after it is submitted', async () => {

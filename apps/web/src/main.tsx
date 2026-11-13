@@ -3,6 +3,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { blobClient, createApi, createCoachApi, httpClient } from './api'
+import { clientTabFromLocation } from './client/tab'
 import { routeFromLocation } from './coach/route'
 import { ensureTelegramLaunchParams } from './lib/ensure-telegram-launch-params'
 import { initTma } from './lib/tma-sdk'
@@ -37,6 +38,7 @@ const start = async (container: HTMLElement) => {
         coachApi={createCoachApi(request, fetchBlob)}
         confirm={confirmWithTelegram}
         initialRoute={routeFromLocation(window.location)}
+        initialTab={clientTabFromLocation(window.location)}
         backButton={sdkBackButton}
         share={shareWithTelegram}
         download={downloadWithTelegram}

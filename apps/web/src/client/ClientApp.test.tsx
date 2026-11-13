@@ -6,9 +6,12 @@ import { ClientApp } from './ClientApp'
 const renderClient = async (
   setup: Parameters<typeof fakeApi>[0] = {},
   confirm = vi.fn(async (_message: string) => true),
+  initialTab?: 'current' | 'month',
 ) => {
   const fake = fakeApi(setup)
-  const screen = await render(<ClientApp api={fake.api} confirm={confirm} />)
+  const screen = await render(
+    <ClientApp api={fake.api} confirm={confirm} initialTab={initialTab} />,
+  )
   return { ...fake, confirm, screen }
 }
 
@@ -268,5 +271,14 @@ describe('weekly period select', () => {
     await expect
       .element(screen.getByRole('button', { name: /Неделя отчёта/ }))
       .not.toBeInTheDocument()
+  })
+})
+
+describe('opening from a bot link', () => {
+  it('opens the monthly tab when asked to', async () => {
+    const { screen } = await renderClient({}, undefined, 'month')
+    await expect
+      .element(screen.getByRole('tab', { name: 'Месяц' }))
+      .toHaveAttribute('aria-selected', 'true')
   })
 })

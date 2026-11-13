@@ -7,15 +7,26 @@ import {
 } from '@nestjs/common'
 import { Bot, InlineKeyboard } from 'grammy'
 import { type AppConfig, CONFIG } from '../config'
+import { reportTabUrl } from './report-tab-url'
 import type { SentMessage, TelegramGateway, WebAppButton } from './telegram.gateway'
 
-export const startReply = (webAppUrl: string): { text: string; webAppButton: WebAppButton } => ({
-  text: 'Привет! Это LekaFit 💜\n\nРаз в неделю заполняйте отчёт прямо здесь — данные сохраняются автоматически, а тренер получит его сразу после отправки.',
-  webAppButton: { text: '📋 Недельный отчёт', url: webAppUrl },
+export const startReply = (webAppUrl: string): { text: string; webAppButtons: WebAppButton[] } => ({
+  text: 'Привет! Это LekaFit 💜\n\nЗаполняйте отчёты прямо здесь — данные сохраняются автоматически, а я получу их сразу после отправки.',
+  webAppButtons: [
+    { text: '📋 Недельный отчёт', url: reportTabUrl(webAppUrl, 'week') },
+    { text: '📅 Месячный отчёт', url: reportTabUrl(webAppUrl, 'month') },
+  ],
 })
 
-const keyboard = (button?: WebAppButton) =>
-  button ? { reply_markup: new InlineKeyboard().webApp(button.text, button.url) } : {}
+const keyboard = (buttons: WebAppButton[]) =>
+  buttons.length === 0
+    ? {}
+    : {
+        reply_markup: buttons.reduce(
+          (rows, b) => rows.row().webApp(b.text, b.url),
+          new InlineKeyboard(),
+        ),
+      }
 
 @Injectable()
 export class GrammyGateway
@@ -28,13 +39,17 @@ export class GrammyGateway
     this.bot = new Bot(config.botToken)
     this.bot.command('start', (ctx) => {
       const reply = startReply(config.webAppUrl)
-      return ctx.reply(reply.text, keyboard(reply.webAppButton))
+      return ctx.reply(reply.text, keyboard(reply.webAppButtons))
     })
     this.bot.catch((err) => this.logger.error(err.message))
   }
 
   async send(message: SentMessage): Promise<void> {
-    await this.bot.api.sendMessage(message.chatId, message.text, keyboard(message.webAppButton))
+    await this.bot.api.sendMessage(
+      message.chatId,
+      message.text,
+      keyboard(message.webAppButton ? [message.webAppButton] : []),
+    )
   }
 
   async botUsername(): Promise<string> {
