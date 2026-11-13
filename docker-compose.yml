@@ -13,6 +13,7 @@ services:
       retries: 10
 
   api:
+    image: ghcr.io/ramazanittiev/lekafit-api:latest
     build: { context: ., dockerfile: apps/api/Dockerfile }
     restart: unless-stopped
     depends_on:
@@ -25,6 +26,7 @@ services:
       START_BOT: ${START_BOT:-true}
 
   web:
+    image: ghcr.io/ramazanittiev/lekafit-web:latest
     build: { context: ., dockerfile: apps/web/Dockerfile }
     restart: unless-stopped
     depends_on: [api]
