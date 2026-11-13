@@ -1,9 +1,9 @@
 import { Card, Table } from '@heroui/react'
 import { formatDelta, parseNumber } from '@lekafit/shared'
 import type { MonthlyReport } from '../api'
-import { monthName } from '../lib/format'
+import { period } from '../lib/format'
 
-const COLUMNS = ['Месяц', 'Вес', 'Δ от старта', 'Талия'] as const
+const COLUMNS = ['Период', 'Вес', 'Δ от старта', 'Талия'] as const
 
 export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
   <Card>
@@ -23,7 +23,7 @@ export const MonthlyDynamics = ({ reports }: { reports: MonthlyReport[] }) => (
           <Table.Body>
             {reports.map((r) => (
               <Table.Row key={r.id} className="[&_.table__cell]:bg-transparent!">
-                <Table.Cell>{monthName(r.weekStart)}</Table.Cell>
+                <Table.Cell>{period(r)}</Table.Cell>
                 <Table.Cell>{r.data.now.weight || '—'}</Table.Cell>
                 <Table.Cell>
                   {formatDelta({

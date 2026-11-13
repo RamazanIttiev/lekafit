@@ -11,7 +11,7 @@ import {
 import { UserEntity } from '../users/user.entity'
 
 @Entity('reports')
-@Unique('reports_user_kind_period', ['userId', 'kind', 'weekStart'])
+@Unique('reports_user_kind_period', ['userId', 'kind', 'weekStart', 'weekEnd'])
 export class ReportEntity {
   @PrimaryGeneratedColumn({ type: 'int' })
   id!: number

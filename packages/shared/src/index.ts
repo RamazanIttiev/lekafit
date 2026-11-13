@@ -316,28 +316,13 @@ export const monthlyReportDataSchema = z.object({
 
 export type MonthlyReportData = z.infer<typeof monthlyReportDataSchema>
 
-export const monthRange = (today: Date): { start: string; end: string } => ({
-  start: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)),
-  end: isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
-})
-
-const MONTHS = [
-  'Январь',
-  'Февраль',
-  'Март',
-  'Апрель',
-  'Май',
-  'Июнь',
-  'Июль',
-  'Август',
-  'Сентябрь',
-  'Октябрь',
-  'Ноябрь',
-  'Декабрь',
-]
-
-export const monthName = (isoDate: string): string =>
-  `${MONTHS[Number(isoDate.slice(5, 7)) - 1]} ${isoDate.slice(0, 4)}`
+export const monthlyDueDate = (from: string): string => {
+  const year = Number(from.slice(0, 4))
+  const month = Number(from.slice(5, 7))
+  const day = Number(from.slice(8, 10))
+  const lastDayOfNextMonth = new Date(year, month + 1, 0).getDate()
+  return isoDate(new Date(year, month, Math.min(day, lastDayOfNextMonth)))
+}
 
 export const monthlyMissingFields = (data: MonthlyReportData): string[] => [
   ...MONTHLY_METRICS.filter(
@@ -367,16 +352,16 @@ const PHOTO_EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/we
 
 export const photoFileName = ({
   clientName,
-  monthStart,
+  periodStart,
   angle,
   mime,
 }: {
   clientName: string
-  monthStart: string
+  periodStart: string
   angle: PhotoAngle
   mime: string
 }): string => {
   const name = clientName.trim().replace(/\s+/g, '_')
-  const parts = ['LekaFit', ...(name ? [name] : []), monthStart.slice(0, 7), angle]
+  const parts = ['LekaFit', ...(name ? [name] : []), periodStart, angle]
   return `${parts.join('_')}.${PHOTO_EXTENSIONS[mime] ?? 'jpg'}`
 }

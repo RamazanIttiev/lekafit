@@ -27,10 +27,12 @@ const envSchema = z.object({
   WEBAPP_URL: z.string().url(),
   PORT: z.coerce.number().int().default(3000),
   START_BOT: z.enum(['true', 'false']).default('true'),
+  NOW_OVERRIDE: z.coerce.date().optional(),
 })
 
-export const configFromEnv = (env: NodeJS.ProcessEnv) => {
+export const configFromEnv = (env: NodeJS.ProcessEnv, clock: () => number = Date.now) => {
   const parsed = envSchema.parse(env)
+  const shiftMs = parsed.NOW_OVERRIDE ? parsed.NOW_OVERRIDE.getTime() - clock() : 0
   return {
     port: parsed.PORT,
     config: {
@@ -39,7 +41,7 @@ export const configFromEnv = (env: NodeJS.ProcessEnv) => {
       coachTelegramIds: parsed.COACH_TELEGRAM_IDS,
       webAppUrl: parsed.WEBAPP_URL,
       startBot: parsed.START_BOT === 'true',
-      now: () => new Date(),
+      now: () => new Date(clock() + shiftMs),
     } satisfies AppConfig,
   }
 }

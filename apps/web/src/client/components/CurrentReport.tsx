@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Api, MonthlyReportData, Report, ReportData } from '../../api'
 import { CenteredSpinner } from '../../components/CenteredSpinner'
 import { Notice } from '../../components/Notice'
-import { monthName, period } from '../../lib/format'
+import { period } from '../../lib/format'
 import { resizeImage } from '../../lib/resize-image'
 import { MonthlyReportForm } from '../../report/MonthlyReportForm'
 import { PhotoSlots } from '../../report/PhotoSlots'
@@ -32,8 +32,7 @@ const missingIn = (report: Report) =>
     ? missingFields(report.data)
     : [...monthlyMissingFields(report.data), ...missingPhotos(report.photos)]
 
-const title = (report: Report) =>
-  report.kind === 'WEEKLY' ? period(report) : monthName(report.weekStart)
+const title = (report: Report) => period(report)
 
 type Props = {
   api: Api

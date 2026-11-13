@@ -59,13 +59,13 @@ describe('coach: monthly reports', () => {
     await screen.getByRole('tab', { name: 'Динамика' }).click()
     await expect.element(screen.getByRole('grid', { name: 'Динамика по месяцам' })).toBeVisible()
     await expect.element(screen.getByRole('grid', { name: 'Динамика' })).toBeVisible()
-    await screen.getByRole('button', { name: 'Отчёт за Ноябрь 2026' }).click()
+    await screen.getByRole('button', { name: 'Отчёт за 09.11 — 09.12' }).click()
     await expect.element(screen.getByLabelText('Факт Кардио')).toHaveValue('240')
   })
 
   it('opens a monthly report straight from the bot link, read-only', async () => {
     const { screen } = await renderCoach({ profile, reports: [monthly] }, '#/coach/reports/20')
-    await expect.element(screen.getByText('Отчёт за Ноябрь 2026')).toBeVisible()
+    await expect.element(screen.getByText('Отчёт за 09.11 — 09.12')).toBeVisible()
     await expect.element(screen.getByLabelText('Факт Кардио')).toBeDisabled()
     await screen.getByRole('tab', { name: 'Замеры' }).click()
     await expect.element(screen.getByLabelText('От старта Вес')).toHaveTextContent('-4')
@@ -79,7 +79,7 @@ describe('coach: monthly reports', () => {
 describe('coach: monthly photos', () => {
   const withPhotos = aMonthlyReport({
     id: 21,
-    weekStart: '2026-11-01',
+    weekStart: '2026-11-09',
     submittedAt: submitted,
     photos: { front: true, side: true, back: false },
     prevPhotosReportId: 11,

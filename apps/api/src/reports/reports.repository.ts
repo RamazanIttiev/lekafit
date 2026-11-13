@@ -84,10 +84,10 @@ export class ReportsRepository {
     }
   }
 
-  private async previousMonthlyId(userId: number, before: string): Promise<number | null> {
+  private async previousMonthlyId(userId: number, before: number): Promise<number | null> {
     const previous = await this.reports.findOne({
-      where: { userId, kind: 'MONTHLY', submittedAt: Not(IsNull()), weekStart: LessThan(before) },
-      order: { weekStart: 'DESC' },
+      where: { userId, kind: 'MONTHLY', submittedAt: Not(IsNull()), id: LessThan(before) },
+      order: { id: 'DESC' },
     })
     return previous?.id ?? null
   }
@@ -113,7 +113,7 @@ export class ReportsRepository {
       plan,
       data: monthlyReportDataSchema.parse(data),
       photos: await this.photoStatus(rest.id),
-      prevPhotosReportId: await this.previousMonthlyId(rest.userId, rest.weekStart),
+      prevPhotosReportId: await this.previousMonthlyId(rest.userId, rest.id),
     }
   }
 
@@ -123,6 +123,15 @@ export class ReportsRepository {
     weekStart: string
   }): Promise<Report | null> {
     return this.toReport(await this.reports.findOneBy(input))
+  }
+
+  async openDraft(userId: number, kind: ReportKind): Promise<Report | null> {
+    return this.toReport(
+      await this.reports.findOne({
+        where: { userId, kind, submittedAt: IsNull() },
+        order: { weekStart: 'DESC', id: 'DESC' },
+      }),
+    )
   }
 
   async findById(id: number): Promise<Report | null> {
@@ -137,7 +146,7 @@ export class ReportsRepository {
     return this.toReport(
       await this.reports.findOne({
         where: { userId, kind, submittedAt: Not(IsNull()) },
-        order: { weekStart: order },
+        order: { submittedAt: order, id: order },
       }),
     )
   }
@@ -162,8 +171,10 @@ export class ReportsRepository {
     } catch (error) {
       if (!isUniqueViolation(error)) throw error
     }
-    const { userId, kind, weekStart } = input
-    const report = await this.findForPeriod({ userId, kind, weekStart })
+    const { userId, kind, weekStart, weekEnd } = input
+    const report = await this.toReport(
+      await this.reports.findOneBy({ userId, kind, weekStart, weekEnd }),
+    )
     if (!report) throw new Error('Report was not created')
     return report
   }
@@ -172,17 +183,17 @@ export class ReportsRepository {
     await this.reports.update({ id, submittedAt: IsNull() }, { data })
   }
 
-  async submit(id: number, plan: Plan | null): Promise<void> {
+  async submit(input: { id: number; plan: Plan | null; at: Date }): Promise<void> {
     await this.reports.update(
-      { id, submittedAt: IsNull() },
-      { submittedAt: new Date(), planSnapshot: plan },
+      { id: input.id, submittedAt: IsNull() },
+      { submittedAt: input.at, planSnapshot: input.plan },
     )
   }
 
   async listFor(userId: number, kind: ReportKind): Promise<Report[]> {
     const entities = await this.reports.find({
       where: { userId, kind },
-      order: { weekStart: 'DESC' },
+      order: { weekStart: 'DESC', id: 'DESC' },
     })
     const reports = await Promise.all(entities.map((e) => this.toReport(e)))
     return reports.filter((r): r is Report => r !== null)
@@ -191,7 +202,7 @@ export class ReportsRepository {
   async submittedFor(userId: number): Promise<Report[]> {
     const entities = await this.reports.find({
       where: { userId, submittedAt: Not(IsNull()) },
-      order: { weekStart: 'DESC' },
+      order: { weekStart: 'DESC', id: 'DESC' },
     })
     const reports = await Promise.all(entities.map((e) => this.toReport(e)))
     return reports.filter((r): r is Report => r !== null)

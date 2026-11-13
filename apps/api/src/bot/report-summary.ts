@@ -4,7 +4,6 @@ import {
   METRICS,
   MONTHLY_MEASURES,
   MONTHLY_METRICS,
-  monthName,
   PHOTO_ANGLES,
   parseNumber,
   type Unit,
@@ -13,6 +12,8 @@ import type { MonthlyReport, Report, WeeklyReport } from '../reports/reports.rep
 import type { User } from '../users/users.repository'
 
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
+const periodLabel = ({ weekStart, weekEnd }: { weekStart: string; weekEnd: string }) =>
+  weekStart === weekEnd ? shortDate(weekStart) : `${shortDate(weekStart)} — ${shortDate(weekEnd)}`
 const plain = (text: string) => text.replace(/[  ]/g, ' ')
 
 const clientName = (user: User) => {
@@ -68,7 +69,7 @@ const sections = (report: Report, client: User): string[][] =>
         weeklyMeasureLines(report),
       ]
     : [
-        [`📋 Новый отчёт за месяц: ${clientName(client)}`, monthName(report.weekStart)],
+        [`📋 Новый отчёт за месяц: ${clientName(client)}`, periodLabel(report)],
         factLines(MONTHLY_METRICS, report.data.fact),
         monthlyMeasureLines(report),
         [photoLine(report)],

@@ -45,8 +45,8 @@ const aMonthlyReport = (
   id: 2,
   kind: 'MONTHLY',
   userId: 1,
-  weekStart: '2026-11-01',
-  weekEnd: '2026-11-30',
+  weekStart: '2026-11-09',
+  weekEnd: '2026-12-09',
   plan: null,
   submittedAt: null,
   seenByCoachAt: null,
@@ -69,7 +69,7 @@ describe('reportSummary for a monthly report', () => {
     expect(text).toBe(
       [
         '📋 Новый отчёт за месяц: Анна Иванова (@anna)',
-        'Ноябрь 2026',
+        '09.11 — 09.12',
         '',
         'Калории: 1850',
         'Кардио: 240',

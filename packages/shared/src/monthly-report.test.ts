@@ -4,10 +4,9 @@ import {
   MONTHLY_METRICS,
   MONTHLY_WELLBEING,
   missingPhotos,
+  monthlyDueDate,
   monthlyMissingFields,
   monthlyReportDataSchema,
-  monthName,
-  monthRange,
   photoFileName,
 } from './index'
 
@@ -19,14 +18,19 @@ const filled = () =>
     feedback: { wins: 'a', issues: 'b', changes: 'c', questions: 'd' },
   })
 
-describe('monthRange', () => {
-  it('returns first and last day of the month', () => {
-    expect(monthRange(new Date(2026, 10, 12))).toEqual({ start: '2026-11-01', end: '2026-11-30' })
+describe('monthlyDueDate', () => {
+  it('is the same day of the next month', () => {
+    expect(monthlyDueDate('2026-11-09')).toBe('2026-12-09')
   })
 
-  it('handles February in a leap year and December', () => {
-    expect(monthRange(new Date(2028, 1, 29))).toEqual({ start: '2028-02-01', end: '2028-02-29' })
-    expect(monthRange(new Date(2026, 11, 31))).toEqual({ start: '2026-12-01', end: '2026-12-31' })
+  it('rolls over the year', () => {
+    expect(monthlyDueDate('2026-12-15')).toBe('2027-01-15')
+  })
+
+  it('clamps to the last day of a shorter month', () => {
+    expect(monthlyDueDate('2026-01-31')).toBe('2026-02-28')
+    expect(monthlyDueDate('2026-03-31')).toBe('2026-04-30')
+    expect(monthlyDueDate('2028-01-30')).toBe('2028-02-29')
   })
 })
 
@@ -83,25 +87,6 @@ describe('monthlyMissingFields', () => {
   })
 })
 
-describe('monthName', () => {
-  it.each([
-    ['2026-01-01', 'Январь 2026'],
-    ['2026-02-01', 'Февраль 2026'],
-    ['2026-03-01', 'Март 2026'],
-    ['2026-04-01', 'Апрель 2026'],
-    ['2026-05-01', 'Май 2026'],
-    ['2026-06-01', 'Июнь 2026'],
-    ['2026-07-01', 'Июль 2026'],
-    ['2026-08-01', 'Август 2026'],
-    ['2026-09-01', 'Сентябрь 2026'],
-    ['2026-10-01', 'Октябрь 2026'],
-    ['2026-11-01', 'Ноябрь 2026'],
-    ['2027-12-31', 'Декабрь 2027'],
-  ])('names %s as %s', (iso, name) => {
-    expect(monthName(iso)).toBe(name)
-  })
-})
-
 describe('missingPhotos', () => {
   it('lists the angles without a photo, in front, side, back order', () => {
     expect(missingPhotos({ front: false, side: true, back: false })).toEqual([
@@ -116,26 +101,26 @@ describe('missingPhotos', () => {
 })
 
 describe('photoFileName', () => {
-  const base = { clientName: 'Анна  Иванова', monthStart: '2026-11-01', angle: 'side' as const }
+  const base = { clientName: 'Анна  Иванова', periodStart: '2026-11-09', angle: 'side' as const }
 
   it('joins client, month and angle with underscores', () => {
     expect(photoFileName({ ...base, mime: 'image/jpeg' })).toBe(
-      'LekaFit_Анна_Иванова_2026-11_side.jpg',
+      'LekaFit_Анна_Иванова_2026-11-09_side.jpg',
     )
   })
 
   it('uses the extension of the image type', () => {
     expect(photoFileName({ ...base, mime: 'image/png' })).toBe(
-      'LekaFit_Анна_Иванова_2026-11_side.png',
+      'LekaFit_Анна_Иванова_2026-11-09_side.png',
     )
     expect(photoFileName({ ...base, mime: 'image/webp' })).toBe(
-      'LekaFit_Анна_Иванова_2026-11_side.webp',
+      'LekaFit_Анна_Иванова_2026-11-09_side.webp',
     )
   })
 
   it('leaves the name out when there is none', () => {
     expect(photoFileName({ ...base, clientName: ' ', mime: 'image/jpeg' })).toBe(
-      'LekaFit_2026-11_side.jpg',
+      'LekaFit_2026-11-09_side.jpg',
     )
   })
 })

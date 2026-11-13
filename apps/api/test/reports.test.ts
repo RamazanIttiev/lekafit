@@ -10,6 +10,15 @@ afterAll(async () => {
 })
 beforeEach(resetDatabase)
 
+describe('weekly period in Moscow time', () => {
+  it('moves to the new week on Thursday Moscow time, even while it is still Wednesday in UTC', async () => {
+    const wednesdayNightUtc = await startApp({ now: () => new Date(Date.UTC(2026, 10, 18, 22, 0)) })
+    const res = await as(wednesdayNightUtc, aClient()).get('/reports/current').expect(200)
+    await wednesdayNightUtc.close()
+    expect(res.body.weekStart).toBe('2026-11-16')
+  })
+})
+
 const filledFacts = {
   fact: { cal: '1850', protein: '120', fat: '60', carb: '180', steps: '9000', training: '3' },
   now: { weight: '71,9', waist: '70' },
@@ -27,9 +36,24 @@ describe('GET /reports/current', () => {
     expect(res.body.data.fact.cal).toBe('')
   })
 
-  it('opens the previous week on Monday to Wednesday', async () => {
+  it('opens the new week on Monday', async () => {
     const res = await as(mondayApp, aClient()).get('/reports/current').expect(200)
-    expect(res.body.weekStart).toBe('2026-11-09')
+    expect(res.body.weekStart).toBe('2026-11-16')
+  })
+
+  it('opens the same week on its Sunday', async () => {
+    const sundayApp = await startApp({ now: () => new Date(Date.UTC(2026, 10, 15, 12)) })
+    const res = await as(sundayApp, aClient()).get('/reports/current').expect(200)
+    await sundayApp.close()
+    expect(res.body).toMatchObject({ weekStart: '2026-11-09', weekEnd: '2026-11-15' })
+  })
+
+  it('does not let the client send last week report in the new week', async () => {
+    const client = aClient()
+    const lastWeek = await as(app, client).get('/reports/current')
+    const thisWeek = await as(mondayApp, client).get('/reports/current')
+    expect(thisWeek.body.id).not.toBe(lastWeek.body.id)
+    expect(thisWeek.body.weekStart).toBe('2026-11-16')
   })
 
   it('returns the same draft on every visit', async () => {
@@ -97,9 +121,11 @@ describe('GET /reports/current', () => {
     await as(app, client).patch(`/reports/${lastWeek.body.id}`, { data: filledFacts })
     await as(app, client).post(`/reports/${lastWeek.body.id}/submit`).expect(200)
 
-    const nextWeek = await as(mondayApp, client).get('/reports/current')
-    expect(nextWeek.body).toMatchObject({ weekStart: '2026-11-09' })
-    expect(nextWeek.body.submittedAt).toBeTruthy()
+    const sundayApp = await startApp({ now: () => new Date(Date.UTC(2026, 10, 15, 12)) })
+    const sameWeek = await as(sundayApp, client).get('/reports/current')
+    await sundayApp.close()
+    expect(sameWeek.body).toMatchObject({ weekStart: '2026-11-09' })
+    expect(sameWeek.body.submittedAt).toBeTruthy()
 
     const later = await startApp({ now: () => new Date(2026, 10, 19, 9) })
     const fresh = await as(later, client).get('/reports/current')

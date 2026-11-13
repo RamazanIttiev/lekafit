@@ -11,27 +11,20 @@ import {
   PHOTO_ANGLES,
   type MonthlyReportData,
   monthlyReportDataSchema,
-  monthRange,
+  monthlyDueDate,
   type ReportData,
   type ReportKind,
   reportDataSchema,
   weekRange,
 } from '@lekafit/shared'
 import { type AppConfig, CONFIG } from '../config'
+import { moscowIsoDate, moscowToday } from './moscow'
 import { type MonthlyReport, type Report, ReportsRepository } from './reports.repository'
 
 export const REPORT_SUBMITTED = Symbol('REPORT_SUBMITTED')
 export type ReportSubmittedListener = (report: Report) => Promise<void>
 
-const GRACE_DAYS = 3
-
-const daysBefore = (now: Date, days: number) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() - days)
-
-const PERIODS: Record<ReportKind, (now: Date) => { start: string; end: string }> = {
-  WEEKLY: (now) => weekRange(daysBefore(now, GRACE_DAYS)),
-  MONTHLY: (now) => monthRange(daysBefore(now, GRACE_DAYS)),
-}
+const weeklyPeriod = (now: Date) => weekRange(moscowToday(now))
 
 const KINDS_BY_QUERY: Record<string, ReportKind> = { weekly: 'WEEKLY', monthly: 'MONTHLY' }
 
@@ -103,21 +96,51 @@ export class ReportsService {
 
   async current(userId: number, kindQuery?: string): Promise<Report> {
     const kind = parseKind(kindQuery)
-    const period = PERIODS[kind](this.config.now())
-    const existing = await this.reports.findForPeriod({ userId, kind, weekStart: period.start })
+    return kind === 'WEEKLY' ? this.currentWeekly(userId) : this.currentMonthly(userId)
+  }
+
+  private async currentWeekly(userId: number): Promise<Report> {
+    const period = weeklyPeriod(this.config.now())
+    const existing = await this.reports.findForPeriod({
+      userId,
+      kind: 'WEEKLY',
+      weekStart: period.start,
+    })
     if (existing) return existing
-    const previous = await this.reports.lastSubmitted(userId, kind)
-    const data =
-      kind === 'WEEKLY'
-        ? weeklyPrefill(previous)
-        : monthlyPrefill(previous, await this.reports.firstSubmitted(userId, kind))
+    const previous = await this.reports.lastSubmitted(userId, 'WEEKLY')
     return this.reports.create({
       userId,
-      kind,
+      kind: 'WEEKLY',
       weekStart: period.start,
       weekEnd: period.end,
-      data,
+      data: weeklyPrefill(previous),
     })
+  }
+
+  private async currentMonthly(userId: number): Promise<Report> {
+    const today = moscowIsoDate(this.config.now())
+    const last = await this.reports.lastSubmitted(userId, 'MONTHLY')
+    const period = last?.submittedAt
+      ? this.cycleAfter(moscowIsoDate(last.submittedAt), today)
+      : { start: today, end: today }
+    const open = await this.reports.openDraft(userId, 'MONTHLY')
+    if (open) return open
+    return this.reports.create({
+      userId,
+      kind: 'MONTHLY',
+      weekStart: period.start,
+      weekEnd: period.end,
+      data: monthlyPrefill(last, await this.reports.firstSubmitted(userId, 'MONTHLY')),
+    })
+  }
+
+  private cycleAfter(submittedOn: string, today: string) {
+    const due = monthlyDueDate(submittedOn)
+    if (today < due)
+      throw new ConflictException(
+        `Следующий месячный отчёт откроется ${due.slice(8, 10)}.${due.slice(5, 7)}`,
+      )
+    return { start: submittedOn, end: due }
   }
 
   async own(userId: number, id: number): Promise<Report> {
@@ -137,7 +160,11 @@ export class ReportsService {
     const report = await this.own(userId, id)
     if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
     if (report.kind === 'MONTHLY') requireAllPhotos(report.photos)
-    await this.reports.submit(id, await this.reports.planFor(userId))
+    await this.reports.submit({
+      id,
+      plan: await this.reports.planFor(userId),
+      at: this.config.now(),
+    })
     const submitted = await this.own(userId, id)
     await this.onSubmitted(submitted)
     return submitted

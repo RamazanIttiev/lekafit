@@ -14,7 +14,7 @@ const renderMonthly = async (setup: Parameters<typeof fakeApi>[0] = {}) => {
 describe('monthly report', () => {
   it('shows the reporting month', async () => {
     const { screen } = await renderMonthly()
-    await expect.element(screen.getByRole('heading', { name: 'Ноябрь 2026' })).toBeVisible()
+    await expect.element(screen.getByRole('heading', { name: '09.11 — 09.12' })).toBeVisible()
   })
 
   it('asks for monthly averages, total workouts and optional cardio', async () => {
@@ -118,8 +118,8 @@ describe('monthly progress', () => {
   it('shows monthly weight, waist and change since the start in the Progress tab', async () => {
     const past = aMonthlyReport({
       id: 30,
-      weekStart: '2026-10-01',
-      weekEnd: '2026-10-31',
+      weekStart: '2026-10-09',
+      weekEnd: '2026-11-09',
       submittedAt: '2026-11-01T09:00:00.000Z',
       data: monthlyDataWith({ baseline: { weight: '75' }, now: { weight: '72', waist: '68' } }),
     })
@@ -127,7 +127,7 @@ describe('monthly progress', () => {
     const screen = await render(<ClientApp api={fake.api} confirm={async () => true} />)
     await screen.getByRole('tab', { name: 'Прогресс' }).click()
     const table = screen.getByRole('grid', { name: 'Динамика по месяцам' })
-    await expect.element(table.getByRole('rowheader', { name: 'Октябрь 2026' })).toBeVisible()
+    await expect.element(table.getByRole('rowheader', { name: '09.10 — 09.11' })).toBeVisible()
     await expect.element(table.getByRole('gridcell', { name: '-3' })).toBeVisible()
     await expect.element(table.getByRole('gridcell', { name: '68' })).toBeVisible()
   })

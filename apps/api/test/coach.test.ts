@@ -1,7 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { aClient, as, resetDatabase, startApp, type TelegramUser, theCoach } from './support'
 
-const app = await startApp()
+let secondsPassed = 0
+const app = await startApp({ now: () => new Date(2026, 10, 13, 12, 0, secondsPassed++) })
 afterAll(() => app.close())
 beforeEach(resetDatabase)
 
