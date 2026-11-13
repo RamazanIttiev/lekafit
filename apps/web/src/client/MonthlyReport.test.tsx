@@ -26,7 +26,9 @@ describe('monthly report', () => {
 
   it('lets the client set monthly workout and cardio targets, but shows the coach plan for nutrition', async () => {
     const { screen } = await renderMonthly({ monthly: aMonthlyReport({ plan: aPlan() }) })
-    await expect.element(screen.getByLabelText('План Калории')).toHaveTextContent('1 800')
+    await expect
+      .element(screen.getByLabelText('План Калории'))
+      .toHaveAttribute('placeholder', (1800).toLocaleString('ru-RU'))
     await screen.getByLabelText('План Силовые тренировки').fill('12')
     await screen.getByLabelText('Факт Силовые тренировки').fill('9')
     await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
@@ -136,8 +138,10 @@ describe('monthly targets from the coach', () => {
     const { screen } = await renderMonthly({
       monthly: aMonthlyReport({ plan: aPlan({ trainingMonth: 12, cardioMonth: 300 }) }),
     })
-    await expect.element(screen.getByLabelText('План Силовые тренировки')).toHaveTextContent('12')
-    await expect.element(screen.getByLabelText('План Кардио')).toHaveTextContent('300')
+    await expect
+      .element(screen.getByLabelText('План Силовые тренировки'))
+      .toHaveAttribute('placeholder', '12')
+    await expect.element(screen.getByLabelText('План Кардио')).toHaveAttribute('placeholder', '300')
     await screen.getByLabelText('Факт Силовые тренировки').fill('9')
     await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
   })

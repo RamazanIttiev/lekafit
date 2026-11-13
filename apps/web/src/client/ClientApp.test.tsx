@@ -16,7 +16,9 @@ describe('weekly report form', () => {
   it('shows the reporting period and the coach plan', async () => {
     const { screen } = await renderClient()
     await expect.element(screen.getByText('09.11 — 15.11')).toBeVisible()
-    await expect.element(screen.getByLabelText('План Калории')).toHaveTextContent('1 800')
+    await expect
+      .element(screen.getByLabelText('План Калории'))
+      .toHaveAttribute('placeholder', (1800).toLocaleString('ru-RU'))
   })
 
   it('tells the client when the coach has not set a plan yet', async () => {
@@ -24,13 +26,15 @@ describe('weekly report form', () => {
     await expect.element(screen.getByText('Тренер ещё не задал план')).toBeVisible()
   })
 
-  it('lets the client fill only the plan values the coach has not set', async () => {
+  it('lets the client edit every plan value, even those the coach has set', async () => {
     const { screen } = await renderClient({ current: aReport({ plan: aPlan({ cal: null }) }) })
     await screen.getByLabelText('План Калории').fill('2 000')
     await screen.getByLabelText('Факт Калории').fill('2 100')
     await expect.element(screen.getByLabelText('Разница Калории')).toHaveTextContent('+100')
-    await expect.element(screen.getByLabelText('План Белки')).toHaveTextContent('120')
-    expect(screen.getByLabelText('План Белки').element().tagName).toBe('OUTPUT')
+    expect(screen.getByLabelText('План Белки').element().tagName).toBe('INPUT')
+    await screen.getByLabelText('План Белки').fill('130')
+    await screen.getByLabelText('Факт Белки').fill('140')
+    await expect.element(screen.getByLabelText('Разница Белки')).toHaveTextContent('+10')
   })
 
   it('calculates the difference from the plan as the client types', async () => {
@@ -198,7 +202,7 @@ describe('report history', () => {
     })
     const { screen } = await renderClient({ history: [past] })
     await screen.getByRole('tab', { name: 'Прогресс' }).click()
-    await expect.element(screen.getByText('Динамика').first()).toBeVisible()
+    await expect.element(screen.getByText('Динамика по неделям').first()).toBeVisible()
     const table = screen.getByRole('grid', { name: 'Динамика' })
     await expect.element(table).toBeVisible()
     const rows = table

@@ -17,7 +17,7 @@ export type PhotoSlotsProps = {
 }
 
 const frame =
-  'flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-default p-2 text-center'
+  'flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-[var(--field-background)] p-2 text-center'
 
 const PhotoImage = ({
   reportId,
@@ -130,7 +130,7 @@ const Slot = ({
       {!props.readOnly && (
         <div className="grid grid-cols-2 gap-2">
           <label
-            className={`button button--md button--secondary cursor-pointer text-center ${busy ? 'opacity-50' : ''}`}
+            className={`button button--md button--primary cursor-pointer text-center ${busy ? 'opacity-50' : ''}`}
           >
             {busy ? 'Загружаю…' : present ? 'Заменить' : 'Добавить фото'}
             <input

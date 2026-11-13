@@ -91,12 +91,14 @@ export const NumberInput = ({
   value,
   disabled,
   invalid,
+  placeholder = '—',
   onChange,
 }: {
   label: string
   value: string
   disabled: boolean
   invalid: boolean
+  placeholder?: string
   onChange: (value: string) => void
 }) => (
   <TextField
@@ -106,7 +108,7 @@ export const NumberInput = ({
     isInvalid={invalid}
     onChange={onChange}
   >
-    <Input inputMode="decimal" placeholder="—" className={'text-center'} />
+    <Input inputMode="decimal" placeholder={placeholder} className={'text-center'} />
   </TextField>
 )
 
@@ -148,24 +150,21 @@ export const PlanFactRows = <K extends string>({
   onPlan: (key: K, value: string) => void
   onFact: (key: K, value: string) => void
 }) => {
-  const planValue = (key: K) => coachPlan(key) ?? parseNumber(plan[key])
+  const planValue = (key: K) => parseNumber(plan[key]) ?? coachPlan(key)
   return (
     <>
       <GridHead columns={['Показатель', 'План', 'Факт', 'Разница']} />
       {metrics.map((m) => (
         <Row key={m.key}>
           <MetricName label={m.label} unit={`${m.unit} / ${m.scope}`} />
-          {coachPlan(m.key) === null ? (
-            <NumberInput
-              label={`План ${m.label}`}
-              value={plan[m.key]}
-              disabled={readOnly}
-              invalid={false}
-              onChange={(v) => onPlan(m.key, v)}
-            />
-          ) : (
-            <Value label={`План ${m.label}`}>{plainNumber(coachPlan(m.key))}</Value>
-          )}
+          <NumberInput
+            label={`План ${m.label}`}
+            value={plan[m.key]}
+            disabled={readOnly}
+            invalid={false}
+            placeholder={plainNumber(coachPlan(m.key))}
+            onChange={(v) => onPlan(m.key, v)}
+          />
           <NumberInput
             label={`Факт ${m.label}`}
             value={fact[m.key]}

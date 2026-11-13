@@ -7,7 +7,7 @@ const COLUMNS = ['Неделя', 'Вес', 'Талия', 'Ккал', 'Шаги']
 export const Dynamics = ({ reports }: { reports: WeeklyReport[] }) => (
   <Card>
     <Card.Header>
-      <Card.Title>Динамика</Card.Title>
+      <Card.Title>Динамика по неделям</Card.Title>
     </Card.Header>
     <Table className="bg-transparent shadow-none [&_.table__cell]:bg-transparent [&_.table__header]:bg-transparent [&_.table__column]:bg-transparent [&_.table__row]:bg-transparent [&_.table__body]:bg-transparent">
       <Table.ScrollContainer>
