@@ -7,17 +7,17 @@ import {
 } from '@nestjs/common'
 import {
   MEASURES,
-  MONTHLY_MEASURES,
   PHOTO_ANGLES,
   type MonthlyReportData,
   monthlyReportDataSchema,
-  monthlyDueDate,
+  previousCalendarMonth,
   type ReportData,
   type ReportKind,
   reportDataSchema,
   weekRange,
 } from '@lekafit/shared'
 import { type AppConfig, CONFIG } from '../config'
+import { computedMonthly } from './monthly-summary'
 import { moscowIsoDate, moscowToday } from './moscow'
 import { type MonthlyReport, type Report, ReportsRepository } from './reports.repository'
 
@@ -48,24 +48,8 @@ const weeklyPrefill = (previous: Report | null): ReportData => {
   return reportDataSchema.parse({ ...empty, prev })
 }
 
-const startValues = (first: MonthlyReport) =>
-  Object.fromEntries(
-    MONTHLY_MEASURES.map((m) => [m.key, first.data.baseline[m.key] || first.data.now[m.key]]),
-  )
-
-const monthlyPrefill = (
-  previous: Report | null,
-  first: Report | null,
-): MonthlyReportData => {
-  if (previous?.kind !== 'MONTHLY' || first?.kind !== 'MONTHLY')
-    return monthlyReportDataSchema.parse({})
-  return monthlyReportDataSchema.parse({
-    about: previous.data.about,
-    plan: previous.data.plan,
-    prev: Object.fromEntries(MONTHLY_MEASURES.map((m) => [m.key, previous.data.now[m.key]])),
-    baseline: startValues(first),
-  })
-}
+const monthlyPrefill = (previous: Report | null): MonthlyReportData =>
+  monthlyReportDataSchema.parse(previous?.kind === 'MONTHLY' ? { about: previous.data.about } : {})
 
 const keepFilled = (stored: Record<string, string>, input: Record<string, string>) =>
   Object.fromEntries(Object.entries(input).map(([key, value]) => [key, stored[key] || value]))
@@ -81,11 +65,8 @@ const mergeDraft = (report: Report, input: unknown): ReportData | MonthlyReportD
   }
   const parsed = monthlyReportDataSchema.safeParse(input)
   if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-  return monthlyReportDataSchema.parse({
-    ...parsed.data,
-    prev: keepFilled(report.data.prev, parsed.data.prev),
-    baseline: keepFilled(report.data.baseline, parsed.data.baseline),
-  })
+  const { about, wellbeing, feedback } = parsed.data
+  return { ...report.data, about, wellbeing, feedback }
 }
 
 const requireAllPhotos = (photos: MonthlyReport['photos']) => {
@@ -129,29 +110,43 @@ export class ReportsService {
   }
 
   private async currentMonthly(userId: number): Promise<Report> {
-    const today = moscowIsoDate(this.config.now())
-    const last = await this.reports.lastSubmitted(userId, 'MONTHLY')
-    const period = last?.submittedAt
-      ? this.cycleAfter(moscowIsoDate(last.submittedAt), today)
-      : { start: today, end: today }
-    const open = await this.reports.openDraft(userId, 'MONTHLY')
-    if (open) return open
+    const period = previousCalendarMonth(moscowIsoDate(this.config.now()))
+    const existing = await this.reports.findForPeriod({
+      userId,
+      kind: 'MONTHLY',
+      periodStart: period.start,
+    })
+    if (existing) return existing
+    const previous = await this.reports.lastSubmittedBefore({
+      userId,
+      kind: 'MONTHLY',
+      periodStart: period.start,
+    })
     return this.reports.create({
       userId,
       kind: 'MONTHLY',
       periodStart: period.start,
       periodEnd: period.end,
-      data: monthlyPrefill(last, await this.reports.firstSubmitted(userId, 'MONTHLY')),
+      data: monthlyPrefill(previous),
     })
   }
 
-  private cycleAfter(submittedOn: string, today: string) {
-    const due = monthlyDueDate(submittedOn)
-    if (today < due)
-      throw new ConflictException(
-        `Следующий месячный отчёт откроется ${due.slice(8, 10)}.${due.slice(5, 7)}`,
-      )
-    return { start: submittedOn, end: due }
+  private async withComputedValues(report: MonthlyReport): Promise<MonthlyReportData> {
+    const [weeklies, previous] = await Promise.all([
+      this.reports.listFor(report.userId, 'WEEKLY'),
+      this.reports.lastSubmittedBefore({
+        userId: report.userId,
+        kind: 'MONTHLY',
+        periodStart: report.periodStart,
+      }),
+    ])
+    const computed = computedMonthly({
+      weeklies: weeklies.flatMap((w) => (w.kind === 'WEEKLY' ? [w] : [])),
+      month: report.periodStart.slice(0, 7),
+      previousMonth: previousCalendarMonth(report.periodStart).start.slice(0, 7),
+      keptBaseline: previous?.kind === 'MONTHLY' ? previous.data.baseline : {},
+    })
+    return { ...report.data, ...computed }
   }
 
   async own(userId: number, id: number): Promise<Report> {
@@ -170,7 +165,10 @@ export class ReportsService {
   async submit(userId: number, id: number): Promise<Report> {
     const report = await this.own(userId, id)
     if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')
-    if (report.kind === 'MONTHLY') requireAllPhotos(report.photos)
+    if (report.kind === 'MONTHLY') {
+      requireAllPhotos(report.photos)
+      await this.reports.updateDraft(id, await this.withComputedValues(report))
+    }
     await this.reports.submit({
       id,
       plan: await this.reports.planFor(userId),

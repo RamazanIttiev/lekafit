@@ -1,12 +1,12 @@
 import {
   formatDelta,
   MEASURES,
-  METRICS,
   MONTHLY_MEASURES,
   MONTHLY_METRICS,
   PHOTO_ANGLES,
   parseNumber,
   type Unit,
+  WEEKLY_METRICS,
 } from '@lekafit/shared'
 import type { MonthlyReport, Report, WeeklyReport } from '../reports/reports.repository'
 import type { User } from '../users/users.repository'
@@ -67,7 +67,7 @@ const sections = (report: Report, client: User): string[][] =>
           `📋 Новый отчёт: ${clientName(client)}`,
           `Неделя ${shortDate(report.periodStart)} — ${shortDate(report.periodEnd)}`,
         ],
-        factLines(METRICS, report.data.fact),
+        factLines(WEEKLY_METRICS, report.data.fact),
         weeklyMeasureLines(report),
       ]
     : [

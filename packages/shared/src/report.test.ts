@@ -84,13 +84,15 @@ describe('weekRange', () => {
   })
 })
 
+const MEASURE_KEYS = ['weight', 'chest', 'waist', 'hips', 'glutes', 'arm', 'thigh']
+
 const filledReport = (overrides: Record<string, Record<string, string>> = {}) => {
   const section = (keys: readonly string[], value: string, patch: Record<string, string> = {}) =>
     Object.fromEntries(keys.map((k) => [k, patch[k] ?? value]))
   return reportDataSchema.parse({
     fact: section(['cal', 'protein', 'fat', 'carb', 'steps', 'training'], '1', overrides.fact),
-    prev: section(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'], '1', overrides.prev),
-    now: section(['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'], '1', overrides.now),
+    prev: section(MEASURE_KEYS, '1', overrides.prev),
+    now: section(MEASURE_KEYS, '1', overrides.now),
     wellbeing: {
       ...Object.fromEntries(
         WELLBEING.map((w) => [w.key, overrides.wellbeing?.[w.key] ?? w.options[0]]),
@@ -121,7 +123,7 @@ describe('reportDataSchema', () => {
 
 describe('missingFields', () => {
   it('lists every field of an empty report', () => {
-    expect(missingFields(reportDataSchema.parse({}))).toHaveLength(6 + 6 + 6 + 4)
+    expect(missingFields(reportDataSchema.parse({}))).toHaveLength(6 + 7 + 6 + 4)
   })
 
   it('names a field by its section and key', () => {
@@ -149,6 +151,22 @@ describe('missingFields', () => {
 
   it('returns nothing when every field is filled', () => {
     expect(missingFields(filledReport())).toEqual([])
+  })
+
+  it('does not require weekly cardio', () => {
+    expect(missingFields(filledReport({ fact: { cardio: '' } }))).toEqual([])
+  })
+
+  it('requires the thigh measurement', () => {
+    expect(missingFields(filledReport({ now: { thigh: '' } }))).toEqual(['now.thigh'])
+  })
+})
+
+describe('weekly cardio and thigh', () => {
+  it('stores cardio minutes and the thigh measurement in the weekly report', () => {
+    const data = reportDataSchema.parse({ fact: { cardio: '90' }, now: { thigh: '56' } })
+    expect(data.fact.cardio).toBe('90')
+    expect(data.now.thigh).toBe('56')
   })
 })
 

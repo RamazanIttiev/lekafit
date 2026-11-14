@@ -1,6 +1,4 @@
 import {
-  MONTHLY_MEASURES,
-  MONTHLY_METRICS,
   MONTHLY_WELLBEING,
   monthlyReportDataSchema,
   type PhotoAngle,
@@ -37,8 +35,8 @@ export const aReport = (overrides: Partial<WeeklyReport> = {}): WeeklyReport => 
 export const aMonthlyReport = (overrides: Partial<MonthlyReport> = {}): MonthlyReport => ({
   id: 2,
   kind: 'MONTHLY',
-  periodStart: '2026-11-09',
-  periodEnd: '2026-12-09',
+  periodStart: '2026-10-01',
+  periodEnd: '2026-10-31',
   data: monthlyReportDataSchema.parse({}),
   plan: aPlan(),
   submittedAt: null,
@@ -56,7 +54,7 @@ const numbers = (keys: readonly { key: string }[]) =>
 
 export const filledData = (): ReportData => {
   const measures = numbers(
-    ['weight', 'chest', 'waist', 'hips', 'glutes', 'arm'].map((key) => ({ key })),
+    ['weight', 'chest', 'waist', 'hips', 'glutes', 'arm', 'thigh'].map((key) => ({ key })),
   )
   return reportDataSchema.parse({
     fact: numbers(['cal', 'protein', 'fat', 'carb', 'steps', 'training'].map((key) => ({ key }))),
@@ -72,8 +70,6 @@ export const filledData = (): ReportData => {
 
 export const filledMonthlyData = (): MonthlyReportData =>
   monthlyReportDataSchema.parse({
-    fact: numbers(MONTHLY_METRICS),
-    now: numbers(MONTHLY_MEASURES),
     wellbeing: Object.fromEntries(MONTHLY_WELLBEING.map((w) => [w.key, w.options[0]])),
     feedback: { wins: 'ок', issues: 'ок', changes: 'ок', questions: 'ок' },
   })

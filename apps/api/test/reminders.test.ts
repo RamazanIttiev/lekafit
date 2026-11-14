@@ -37,12 +37,12 @@ const registered = async (overrides: Partial<TelegramUser> = {}) => {
   return client
 }
 
-const submittedMonthlyOn = (client: TelegramUser, day: string) =>
+const submittedMonthly = (client: TelegramUser, monthStart: string, sentOn: string) =>
   seedSubmittedReport(client.id, {
     kind: 'MONTHLY',
-    periodStart: day,
-    periodEnd: day,
-    submittedAt: moscow(`${day}T12:00:00`),
+    periodStart: monthStart,
+    periodEnd: monthStart,
+    submittedAt: moscow(`${sentOn}T12:00:00`),
   })
 
 const submittedWeek = (client: TelegramUser, start: string, end: string) =>
@@ -54,6 +54,8 @@ const submittedWeek = (client: TelegramUser, start: string, end: string) =>
   })
 
 const toClient = (client: TelegramUser) => sent.filter((m) => m.chatId === client.id)
+const monthlyTo = (client: TelegramUser) =>
+  toClient(client).filter((m) => m.webAppButton?.url.endsWith('tab=month'))
 const toCoach = () => sent.filter((m) => m.chatId === COACH_ID)
 
 beforeEach(async () => {
@@ -138,7 +140,7 @@ describe('weekly reminder', () => {
 
   it('keeps sending on later days and hours from the same running process', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
     let current = moscow('2026-11-13T08:00:00')
     const app = await startApp({ now: () => current }, { telegram })
     await app.get(RemindersService).tick()
@@ -160,10 +162,10 @@ describe('weekly reminder', () => {
 })
 
 describe('monthly reminder', () => {
-  it('announces the next monthly report at 21:00 on its last closed day', async () => {
+  it('announces the monthly report at 21:00 on the last day of the month', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
-    await tickAt('2026-11-12T21:00:00')
+    await submittedWeek(client, '2026-11-09', '2026-11-15')
+    await tickAt('2026-11-30T21:00:00')
     expect(toClient(client)).toHaveLength(1)
     expect(toClient(client)[0]?.text).toContain('Завтра откроется месячный отчёт')
     expect(toClient(client)[0]?.webAppButton).toEqual({
@@ -172,41 +174,49 @@ describe('monthly reminder', () => {
     })
   })
 
-  it('clamps the opening day to the end of a shorter month', async () => {
+  it('announces on the last day of a short month', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-01-31')
-    await tickAt('2026-02-27T21:00:00')
-    expect(toClient(client)).toHaveLength(1)
+    await submittedWeek(client, '2027-02-08', '2027-02-14')
+    await tickAt('2027-02-28T21:00:00')
+    expect(monthlyTo(client)).toHaveLength(1)
   })
 
-  it('does not announce on other days or to clients without a monthly report', async () => {
+  it('does not announce on other days or to clients without a weekly report that month', async () => {
     const client = await registered()
     const newcomer = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
-    await tickAt('2026-11-11T21:00:00')
-    await tickAt('2026-11-13T21:00:00')
-    expect(toClient(client)).toEqual([])
-    expect(toClient(newcomer)).toEqual([])
+    const lastMonthOnly = await registered()
+    await submittedWeek(client, '2026-11-09', '2026-11-15')
+    await submittedWeek(lastMonthOnly, '2026-10-12', '2026-10-18')
+    await tickAt('2026-11-29T21:00:00')
+    await tickAt('2026-11-30T21:00:00')
+    expect(monthlyTo(client)).toHaveLength(1)
+    expect(monthlyTo(newcomer)).toEqual([])
+    expect(monthlyTo(lastMonthOnly)).toEqual([])
   })
 
-  it('follows up at 08:00 every day once the report is open, until submitted', async () => {
+  it('follows up at 08:00 every day from the 1st until the report is sent', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
-    await tickAt('2026-11-13T08:00:00')
-    await tickAt('2026-11-14T08:00:00')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
+    await tickAt('2026-11-01T08:00:00')
+    await tickAt('2026-11-02T08:00:00')
     await tickAt('2026-11-20T08:00:00')
     expect(toClient(client)).toHaveLength(3)
     expect(toClient(client)[0]?.text).toContain('месячный отчёт уже открыт')
     expect(toClient(client)[0]?.webAppButton?.url).toBe('https://example.test/?tab=month')
   })
 
-  it('does not follow up before the report opens or after it is submitted', async () => {
+  it('stops following up once the report for that month is sent', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
-    await tickAt('2026-11-12T08:00:00')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
+    await submittedMonthly(client, '2026-10-01', '2026-11-03')
+    await tickAt('2026-11-04T08:00:00')
     expect(toClient(client)).toEqual([])
-    await submittedMonthlyOn(client, '2026-11-14')
-    await tickAt('2026-11-15T08:00:00')
+  })
+
+  it('does not follow up with clients who sent no weekly report last month', async () => {
+    const client = await registered()
+    await submittedWeek(client, '2026-11-02', '2026-11-08')
+    await tickAt('2026-11-14T08:00:00')
     expect(toClient(client)).toEqual([])
   })
 
@@ -218,43 +228,29 @@ describe('monthly reminder', () => {
       username: undefined,
     })
     const done = await registered({ first_name: 'Мария' })
-    await submittedMonthlyOn(anna, '2026-10-13')
-    await submittedMonthlyOn(olga, '2026-10-10')
-    await submittedMonthlyOn(done, '2026-10-01')
-    await submittedMonthlyOn(done, '2026-11-12')
+    for (const client of [anna, olga, done]) await submittedWeek(client, '2026-10-12', '2026-10-18')
+    await submittedMonthly(done, '2026-10-01', '2026-11-02')
     await tickAt('2026-11-14T08:00:00')
     expect(toCoach()).toHaveLength(1)
     const text = toCoach()[0]?.text ?? ''
-    expect(text).toContain('Не отправили месячный отчёт')
     expect(text).toContain('Не отправили месячный отчёт:\n')
-    expect(text).toContain('Анна Иванова (@anna) — с 13.11')
-    expect(text).toContain('Ольга — с 10.11')
+    expect(text).toContain('Анна Иванова (@anna) — с 01.11')
+    expect(text).toContain('Ольга — с 01.11')
     expect(text).not.toContain('Мария')
-  })
-
-  it('anchors on the latest monthly submission and ignores weekly reports', async () => {
-    const client = await registered()
-    const weeklyOnly = await registered()
-    await submittedMonthlyOn(client, '2026-11-12')
-    await submittedMonthlyOn(client, '2026-10-13')
-    await submittedWeek(weeklyOnly, '2026-10-12', '2026-10-18')
-    await tickAt('2026-11-14T08:00:00')
-    expect(toClient(client)).toEqual([])
-    expect(toClient(weeklyOnly)).toEqual([])
   })
 
   it("does not count another client's monthly report", async () => {
     const client = await registered()
     const other = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
-    await submittedMonthlyOn(other, '2026-11-12')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
+    await submittedMonthly(other, '2026-10-01', '2026-11-02')
     await tickAt('2026-11-14T08:00:00')
     expect(toClient(client)).toHaveLength(1)
   })
 
   it('still reminds clients when the coach digest cannot be delivered', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
     failFor = COACH_ID
     await tickAt('2026-11-14T08:00:00')
     expect(toClient(client)).toHaveLength(1)
@@ -262,14 +258,15 @@ describe('monthly reminder', () => {
 
   it('sends no digest when nobody missed the report', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-11-12')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
+    await submittedMonthly(client, '2026-10-01', '2026-11-02')
     await tickAt('2026-11-14T08:00:00')
     expect(toCoach()).toEqual([])
   })
 
   it('still sends the digest when a client blocked the bot', async () => {
     const client = await registered()
-    await submittedMonthlyOn(client, '2026-10-13')
+    await submittedWeek(client, '2026-10-12', '2026-10-18')
     failFor = client.id
     await tickAt('2026-11-14T08:00:00')
     expect(toCoach()).toHaveLength(1)

@@ -134,6 +134,11 @@ describe('reportSummary', () => {
     expect(text.endsWith('Калории: 1850')).toBe(true)
   })
 
+  it('includes weekly cardio minutes when reported', () => {
+    const text = reportSummary(aReport({ data: { fact: { cardio: '90' } } }), aUser())
+    expect(text).toContain('Кардио: 90')
+  })
+
   it('shows only the reported value regardless of plan', () => {
     const text = reportSummary(aReport({ plan: null, data: { fact: { cal: '1850' } } }), aUser())
     expect(text).toContain('Калории: 1850')

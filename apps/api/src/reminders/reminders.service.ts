@@ -1,10 +1,10 @@
-import { monthlyDueDate, weekRange } from '@lekafit/shared'
+import { calendarMonth, monthOfWeek, previousCalendarMonth, weekRange } from '@lekafit/shared'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { clientName } from '../bot/report-summary'
 import { type ReportTab, reportTabUrl } from '../bot/report-tab-url'
 import { TELEGRAM, type TelegramGateway } from '../bot/telegram.gateway'
 import { type AppConfig, CONFIG } from '../config'
-import { moscowClock, moscowIsoDate, moscowToday, previousDay } from '../reports/moscow'
+import { moscowClock, moscowToday } from '../reports/moscow'
 import { ReportsRepository, type SubmittedSummary } from '../reports/reports.repository'
 import { type User, UsersRepository } from '../users/users.repository'
 
@@ -21,12 +21,13 @@ const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`
 
 type MonthlyCycle = { client: User; opensOn: string }
 
-const lastMonthlySubmissionDate = (summaries: SubmittedSummary[], userId: number) =>
-  summaries
-    .filter((s) => s.userId === userId && s.kind === 'MONTHLY' && s.submittedAt)
-    .map((s) => moscowIsoDate(s.submittedAt as Date))
-    .sort()
-    .at(-1)
+const sentWeeklyIn = (summaries: SubmittedSummary[], userId: number, month: string) =>
+  summaries.some(
+    (s) => s.userId === userId && s.kind === 'WEEKLY' && monthOfWeek(s.periodStart) === month,
+  )
+
+const sentMonthlyFor = (summaries: SubmittedSummary[], userId: number, monthStart: string) =>
+  summaries.some((s) => s.userId === userId && s.kind === 'MONTHLY' && s.periodStart === monthStart)
 
 @Injectable()
 export class RemindersService {
@@ -75,9 +76,9 @@ export class RemindersService {
               },
             ]
           : []
-      const last = lastMonthlySubmissionDate(summaries, client.id)
+      const month = calendarMonth(clock.date)
       const monthly =
-        last && previousDay(monthlyDueDate(last)) === clock.date
+        month.end === clock.date && sentWeeklyIn(summaries, client.id, month.start.slice(0, 7))
           ? [
               {
                 tab: 'month' as const,
@@ -95,12 +96,14 @@ export class RemindersService {
       this.users.listClients(),
       this.reports.submittedSummaries(),
     ])
-    const overdue = clients.flatMap((client): MonthlyCycle[] => {
-      const last = lastMonthlySubmissionDate(summaries, client.id)
-      if (!last) return []
-      const opensOn = monthlyDueDate(last)
-      return opensOn <= today ? [{ client, opensOn }] : []
-    })
+    const month = previousCalendarMonth(today)
+    const opensOn = calendarMonth(today).start
+    const overdue = clients.flatMap((client): MonthlyCycle[] =>
+      sentWeeklyIn(summaries, client.id, month.start.slice(0, 7)) &&
+      !sentMonthlyFor(summaries, client.id, month.start)
+        ? [{ client, opensOn }]
+        : [],
+    )
     await Promise.all(
       overdue.map(({ client }) =>
         this.remind(client, {

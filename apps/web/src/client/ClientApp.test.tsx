@@ -92,6 +92,26 @@ describe('weekly report form', () => {
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
   })
 
+  it('asks for optional weekly cardio and the thigh measurement', async () => {
+    const { screen, saves } = await renderClient({
+      current: aReport({ data: { ...filledData(), fact: { ...filledData().fact, cardio: '' } } }),
+    })
+    await screen.getByLabelText('Факт Кардио').fill('90')
+    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await screen.getByLabelText('Стало Обхват бедра').fill('56')
+    await expect
+      .poll(() => saves.at(-1))
+      .toMatchObject({ fact: { cardio: '90' }, now: { thigh: '56' } })
+  })
+
+  it('sends a weekly report without cardio', async () => {
+    const { screen } = await renderClient({
+      current: aReport({ data: { ...filledData(), fact: { ...filledData().fact, cardio: '' } } }),
+    })
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+  })
+
   it('saves answers automatically', async () => {
     const { screen, saves } = await renderClient()
     await screen.getByLabelText('Факт Белки').fill('115')

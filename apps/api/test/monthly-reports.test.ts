@@ -1,5 +1,13 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { aClient, as, resetDatabase, startApp, type TelegramUser, theCoach } from './support'
+import {
+  aClient,
+  as,
+  resetDatabase,
+  seedSubmittedReport,
+  startApp,
+  type TelegramUser,
+  theCoach,
+} from './support'
 
 const appAt = (date: Date) => startApp({ now: () => date })
 const app = await appAt(new Date(2026, 10, 12, 9))
@@ -26,24 +34,39 @@ const submitMonth = async (
   return draft.body
 }
 
-const nextMonthDraft = async (client: TelegramUser) => {
-  const decemberApp = await appAt(new Date(2026, 11, 20, 9))
-  const res = await as(decemberApp, client).get(MONTHLY).expect(200)
-  await decemberApp.close()
-  return res.body
+const weekly = async (
+  client: TelegramUser,
+  weekStart: string,
+  data: { fact?: Record<string, string>; now?: Record<string, string> },
+  submitted = true,
+) => {
+  await as(app, client).get('/me').expect(200)
+  const monday = new Date(`${weekStart}T00:00:00Z`)
+  const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  await seedSubmittedReport(client.id, {
+    kind: 'WEEKLY',
+    periodStart: weekStart,
+    periodEnd: sunday,
+    submittedAt: submitted ? new Date(`${sunday}T12:00:00Z`) : null,
+    data,
+  })
+}
+
+const submittedOctober = async (client: TelegramUser) => {
+  const res = await submitMonth(new Date(2026, 10, 12, 9), client, {})
+  const coachView = await as(app, theCoach()).get(`/coach/reports/${res.id}`).expect(200)
+  return coachView.body
 }
 
 describe('GET /reports/current?kind=monthly', () => {
-  it('opens an empty first monthly draft starting today', async () => {
+  it('opens the previous calendar month', async () => {
     const res = await as(app, aClient()).get(MONTHLY).expect(200)
     expect(res.body).toMatchObject({
       kind: 'MONTHLY',
-      periodStart: '2026-11-12',
-      periodEnd: '2026-11-12',
+      periodStart: '2026-10-01',
+      periodEnd: '2026-10-31',
       submittedAt: null,
     })
-    expect(res.body.data.fact.cardio).toBe('')
-    expect(res.body.data.baseline.thigh).toBe('')
   })
 
   it('returns the same draft on every visit', async () => {
@@ -54,98 +77,51 @@ describe('GET /reports/current?kind=monthly', () => {
   })
 
   it('uses the Moscow date, not the UTC one', async () => {
-    const lateEveningUtc = await startApp({ now: () => new Date(Date.UTC(2026, 10, 12, 22, 30)) })
+    const lateEveningUtc = await startApp({ now: () => new Date(Date.UTC(2026, 10, 30, 22, 30)) })
     const res = await as(lateEveningUtc, aClient()).get(MONTHLY).expect(200)
     await lateEveningUtc.close()
-    expect(res.body.periodStart).toBe('2026-11-13')
+    expect(res.body).toMatchObject({ periodStart: '2026-11-01', periodEnd: '2026-11-30' })
   })
 
   it('is a separate report from the weekly one', async () => {
     const client = aClient()
-    const weekly = await as(app, client).get('/reports/current').expect(200)
+    const weeklyDraft = await as(app, client).get('/reports/current').expect(200)
     const monthly = await as(app, client).get(MONTHLY).expect(200)
-    expect(weekly.body.kind).toBe('WEEKLY')
-    expect(weekly.body.data).not.toHaveProperty('baseline')
-    expect(monthly.body.id).not.toBe(weekly.body.id)
+    expect(weeklyDraft.body.kind).toBe('WEEKLY')
+    expect(weeklyDraft.body.data).not.toHaveProperty('baseline')
+    expect(monthly.body.id).not.toBe(weeklyDraft.body.id)
   })
 
-  it('stays closed until one month after the previous submission', async () => {
+  it('shows the sent report until the next month begins', async () => {
     const client = aClient()
-    await submitMonth(new Date(2026, 10, 9, 9), client, {})
-    const early = await appAt(new Date(Date.UTC(2026, 11, 8, 20, 0)))
-    const res = await as(early, client).get(MONTHLY).expect(409)
-    await early.close()
-    expect(res.body.message).toBe('Следующий месячный отчёт откроется 09.12')
+    const sent = await submitMonth(new Date(2026, 10, 3, 9), client, {})
+    const res = await as(app, client).get(MONTHLY).expect(200)
+    expect(res.body.id).toBe(sent.id)
+    expect(res.body.submittedAt).not.toBeNull()
   })
 
-  it('opens on the same day of the next month, covering that month', async () => {
+  it('opens the next month on the 1st', async () => {
     const client = aClient()
-    await submitMonth(new Date(2026, 10, 9, 9), client, {})
-    const due = await appAt(new Date(2026, 11, 9, 9))
-    const res = await as(due, client).get(MONTHLY).expect(200)
-    await due.close()
-    expect(res.body).toMatchObject({ periodStart: '2026-11-09', periodEnd: '2026-12-09' })
-  })
-
-  it('opens on the last day of a shorter month', async () => {
-    const client = aClient()
-    await submitMonth(new Date(2027, 0, 31, 9), client, {})
-    const dayBefore = await appAt(new Date(2027, 1, 27, 9))
-    await as(dayBefore, client).get(MONTHLY).expect(409)
-    await dayBefore.close()
-    const due = await appAt(new Date(2027, 1, 28, 9))
-    const res = await as(due, client).get(MONTHLY).expect(200)
-    await due.close()
-    expect(res.body.periodEnd).toBe('2027-02-28')
-  })
-
-  it('starts the next cycle from the actual submission date when the client is late', async () => {
-    const client = aClient()
-    await submitMonth(new Date(2026, 10, 9, 9), client, {})
-    await submitMonth(new Date(2026, 11, 15, 9), client, {})
-    const early = await appAt(new Date(2027, 0, 9, 9))
-    await as(early, client).get(MONTHLY).expect(409)
-    await early.close()
-    const due = await appAt(new Date(2027, 0, 15, 9))
-    const res = await as(due, client).get(MONTHLY).expect(200)
-    await due.close()
-    expect(res.body).toMatchObject({ periodStart: '2026-12-15', periodEnd: '2027-01-15' })
-  })
-
-  it('does not block weekly reports while the monthly one is closed', async () => {
-    const client = aClient()
-    await submitMonth(new Date(2026, 10, 12, 9), client, {})
-    await as(app, client).get(MONTHLY).expect(409)
-    await as(app, client).get('/reports/current').expect(200)
-  })
-
-  it('carries last month into "previous", the start values and the goal forward', async () => {
-    const client = aClient()
-    await submitMonth(new Date(2026, 10, 20, 9), client, {
-      about: { startDate: '2026-10-01', goal: 'Рекомпозиция тела' },
-      baseline: { weight: '75', thigh: '58' },
-      now: { weight: '72', thigh: '56' },
+    await submitMonth(new Date(2026, 10, 3, 9), client, {})
+    const firstOfDecember = await appAt(new Date(2026, 11, 1, 9))
+    const res = await as(firstOfDecember, client).get(MONTHLY).expect(200)
+    await firstOfDecember.close()
+    expect(res.body).toMatchObject({
+      periodStart: '2026-11-01',
+      periodEnd: '2026-11-30',
+      submittedAt: null,
     })
-    const december = await nextMonthDraft(client)
-    expect(december.data.prev).toMatchObject({ weight: '72', thigh: '56' })
-    expect(december.data.baseline).toMatchObject({ weight: '75', thigh: '58' })
-    expect(december.data.about).toEqual({ startDate: '2026-10-01', goal: 'Рекомпозиция тела' })
   })
 
-  it("uses the first month's measurements as the start when no start values were entered", async () => {
+  it('carries the goal and start date forward from the previous monthly report', async () => {
     const client = aClient()
-    await submitMonth(new Date(2026, 10, 20, 9), client, { now: { weight: '72' } })
-    const december = await nextMonthDraft(client)
-    expect(december.data.baseline.weight).toBe('72')
-  })
-
-  it('ignores weekly reports when prefilling', async () => {
-    const client = aClient()
-    const weekly = await as(app, client).get('/reports/current')
-    await as(app, client).patch(`/reports/${weekly.body.id}`, { data: { now: { weight: '70' } } })
-    await as(app, client).post(`/reports/${weekly.body.id}/submit`)
-    const december = await nextMonthDraft(client)
-    expect(december.data.prev.weight).toBe('')
+    await submitMonth(new Date(2026, 10, 3, 9), client, {
+      about: { startDate: '2026-10-01', goal: 'Рекомпозиция тела' },
+    })
+    const decemberApp = await appAt(new Date(2026, 11, 1, 9))
+    const res = await as(decemberApp, client).get(MONTHLY).expect(200)
+    await decemberApp.close()
+    expect(res.body.data.about).toEqual({ startDate: '2026-10-01', goal: 'Рекомпозиция тела' })
   })
 
   it('rejects an unknown kind', async () => {
@@ -153,44 +129,138 @@ describe('GET /reports/current?kind=monthly', () => {
   })
 })
 
-describe('PATCH a monthly report', () => {
-  it('saves monthly-only fields', async () => {
+describe('monthly values computed from weekly reports', () => {
+  it('averages nutrition and steps and totals training and cardio over the month', async () => {
     const client = aClient()
-    const draft = await as(app, client).get(MONTHLY)
-    const res = await as(app, client)
-      .patch(`/reports/${draft.body.id}`, {
-        data: { fact: { cardio: '240' }, wellbeing: { planEase: 'В целом получалось' } },
-      })
-      .expect(200)
-    expect(res.body.data.fact.cardio).toBe('240')
-    expect(res.body.data.wellbeing.planEase).toBe('В целом получалось')
-  })
-
-  it('lets the client enter start values in the first month', async () => {
-    const client = aClient()
-    const draft = await as(app, client).get(MONTHLY)
-    const res = await as(app, client)
-      .patch(`/reports/${draft.body.id}`, { data: { baseline: { weight: '75' } } })
-      .expect(200)
-    expect(res.body.data.baseline.weight).toBe('75')
-  })
-
-  it('keeps carried-forward previous and start values, ignoring client edits', async () => {
-    const client = aClient()
-    await submitMonth(new Date(2026, 10, 20, 9), client, {
-      baseline: { weight: '75' },
-      now: { weight: '72' },
+    await weekly(client, '2026-10-05', {
+      fact: {
+        cal: '1800',
+        protein: '120',
+        fat: '60',
+        carb: '200',
+        steps: '9000',
+        training: '3',
+        cardio: '60',
+      },
     })
-    const decemberApp = await appAt(new Date(2026, 11, 20, 9))
-    const draft = await as(decemberApp, client).get(MONTHLY)
-    const res = await as(decemberApp, client)
+    await weekly(client, '2026-10-12', {
+      fact: { cal: '2001', protein: '130', fat: '70', carb: '180', steps: '10000', training: '2' },
+    })
+    const report = await submittedOctober(client)
+    expect(report.data.fact).toMatchObject({
+      cal: '1901',
+      protein: '125',
+      fat: '65',
+      carb: '190',
+      steps: '9500',
+      training: '5',
+      cardio: '60',
+    })
+  })
+
+  it('counts a week crossing months toward the month with most of its days', async () => {
+    const client = aClient()
+    await weekly(client, '2026-09-21', { fact: { training: '1' } })
+    await weekly(client, '2026-09-28', { fact: { training: '2' } })
+    await weekly(client, '2026-10-26', { fact: { training: '4' } })
+    await weekly(client, '2026-11-02', { fact: { training: '8' } })
+    const report = await submittedOctober(client)
+    expect(report.data.fact.training).toBe('6')
+  })
+
+  it('skips draft weekly reports and blank values', async () => {
+    const client = aClient()
+    await weekly(client, '2026-10-05', { fact: { cal: '1800' } })
+    await weekly(client, '2026-10-12', { fact: { cal: '' } })
+    await weekly(client, '2026-10-19', { fact: { cal: '3000' } }, false)
+    const report = await submittedOctober(client)
+    expect(report.data.fact.cal).toBe('1800')
+    expect(report.data.fact.cardio).toBe('')
+  })
+
+  it("averages this month's measurements, compares them with last month's and the very first", async () => {
+    const client = aClient()
+    await weekly(client, '2026-09-07', { now: { weight: '80', thigh: '60' } })
+    await weekly(client, '2026-09-14', { now: { weight: '78' } })
+    await weekly(client, '2026-10-05', { now: { weight: '76.5', thigh: '58' } })
+    await weekly(client, '2026-10-12', { now: { weight: '75.4', thigh: '57' } })
+    const report = await submittedOctober(client)
+    expect(report.data.now).toMatchObject({ weight: '76', thigh: '57.5' })
+    expect(report.data.prev).toMatchObject({ weight: '79', thigh: '60' })
+    expect(report.data.baseline).toMatchObject({ weight: '80', thigh: '60' })
+  })
+
+  it('takes a start value from the first weekly report that has it', async () => {
+    const client = aClient()
+    await weekly(client, '2026-10-05', { now: { weight: '76' } })
+    await weekly(client, '2026-10-12', { now: { weight: '75', waist: '70' } })
+    const report = await submittedOctober(client)
+    expect(report.data.baseline).toMatchObject({ weight: '76', waist: '70' })
+  })
+
+  it('keeps the start values once recorded, even if an earlier weekly report appears later', async () => {
+    const client = aClient()
+    await weekly(client, '2026-10-05', { now: { weight: '76' } })
+    await submittedOctober(client)
+    await weekly(client, '2026-09-07', { now: { weight: '90', waist: '72' } })
+    await weekly(client, '2026-11-02', { now: { weight: '74' } })
+    const november = await submitMonth(new Date(2026, 11, 1, 9), client, {})
+    const res = await as(app, theCoach()).get(`/coach/reports/${november.id}`).expect(200)
+    expect(res.body.data.baseline).toMatchObject({ weight: '76', waist: '72' })
+  })
+
+  it('can be sent without any weekly reports, leaving computed values blank', async () => {
+    const report = await submittedOctober(aClient())
+    expect(report.data.fact.cal).toBe('')
+    expect(report.data.now.weight).toBe('')
+    expect(report.data.baseline.weight).toBe('')
+  })
+
+  it("does not change after it is sent when more of that month's weekly reports arrive", async () => {
+    const client = aClient()
+    await weekly(client, '2026-10-05', { fact: { cal: '1800' } })
+    const sent = await submittedOctober(client)
+    await weekly(client, '2026-10-12', { fact: { cal: '2200' } })
+    const again = await as(app, theCoach()).get(`/coach/reports/${sent.id}`).expect(200)
+    expect(again.body.data.fact.cal).toBe('1800')
+  })
+})
+
+describe('PATCH a monthly report', () => {
+  it('saves the goal, wellbeing and month summary', async () => {
+    const client = aClient()
+    const draft = await as(app, client).get(MONTHLY)
+    const res = await as(app, client)
       .patch(`/reports/${draft.body.id}`, {
-        data: { prev: { weight: '1' }, baseline: { weight: '2' } },
+        data: {
+          about: { goal: 'Рекомпозиция тела' },
+          wellbeing: { planEase: 'В целом получалось' },
+          feedback: { wins: 'Минус 2 кг' },
+        },
       })
       .expect(200)
-    await decemberApp.close()
-    expect(res.body.data.prev.weight).toBe('72')
-    expect(res.body.data.baseline.weight).toBe('75')
+    expect(res.body.data.about.goal).toBe('Рекомпозиция тела')
+    expect(res.body.data.wellbeing.planEase).toBe('В целом получалось')
+    expect(res.body.data.feedback.wins).toBe('Минус 2 кг')
+  })
+
+  it('ignores nutrition, activity and measurements sent by the client', async () => {
+    const client = aClient()
+    const draft = await as(app, client).get(MONTHLY)
+    const res = await as(app, client)
+      .patch(`/reports/${draft.body.id}`, {
+        data: {
+          fact: { cal: '1' },
+          now: { weight: '1' },
+          prev: { weight: '1' },
+          baseline: { weight: '1' },
+        },
+      })
+      .expect(200)
+    expect(res.body.data.fact.cal).toBe('')
+    expect(res.body.data.now.weight).toBe('')
+    expect(res.body.data.prev.weight).toBe('')
+    expect(res.body.data.baseline.weight).toBe('')
   })
 
   it('validates against the monthly schema', async () => {
@@ -234,15 +304,14 @@ describe('monthly reports for the coach', () => {
 
   it('counts unreviewed monthly reports and opens them', async () => {
     const client = aClient()
-    const monthly = await submitMonth(new Date(2026, 10, 20, 9), client, {
-      fact: { cardio: '240' },
-    })
+    await weekly(client, '2026-10-05', { fact: { cardio: '240' } })
+    const monthly = await submitMonth(new Date(2026, 10, 20, 9), client, {})
     const before = await as(app, theCoach()).get('/coach/clients')
-    expect(before.body[0].unseenReports).toBe(1)
+    expect(before.body[0].unseenReports).toBe(2)
     const res = await as(app, theCoach()).get(`/coach/reports/${monthly.id}`).expect(200)
     expect(res.body).toMatchObject({ kind: 'MONTHLY', data: { fact: { cardio: '240' } } })
     const after = await as(app, theCoach()).get('/coach/clients')
-    expect(after.body[0].unseenReports).toBe(0)
+    expect(after.body[0].unseenReports).toBe(1)
   })
 
   it('keeps "last report" pointing at the latest weekly report', async () => {

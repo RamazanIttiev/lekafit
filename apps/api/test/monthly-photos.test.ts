@@ -273,7 +273,7 @@ describe('coach photo download links', () => {
   it('names the file after the client, month and angle', async () => {
     const id = await sentWithPhotos(aClient({ first_name: 'Анна', last_name: 'Иванова' }))
     const res = await as(app, theCoach()).post(`/coach/reports/${id}/photos/back/link`).expect(200)
-    expect(res.body.fileName).toBe('LekaFit_Анна_Иванова_2026-11-12_back.jpg')
+    expect(res.body.fileName).toBe('LekaFit_Анна_Иванова_2026-10-01_back.jpg')
   })
 
   const pathOf = (url: string) => url.replace('https://example.test/api', '')
@@ -287,7 +287,7 @@ describe('coach photo download links', () => {
     expect(res.headers['content-type']).toBe('image/jpeg')
     expect(res.headers['cache-control']).toBe('private, no-store')
     expect(res.headers['content-disposition']).toBe(
-      `attachment; filename="LekaFit_2026-11-12_side.jpg"; filename*=UTF-8''${encodeURIComponent('LekaFit_Анна_Иванова_2026-11-12_side.jpg')}`,
+      `attachment; filename="LekaFit_2026-10-01_side.jpg"; filename*=UTF-8''${encodeURIComponent('LekaFit_Анна_Иванова_2026-10-01_side.jpg')}`,
     )
   })
 

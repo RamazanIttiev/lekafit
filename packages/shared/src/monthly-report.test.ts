@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
+  calendarMonth,
   MONTHLY_MEASURES,
   MONTHLY_METRICS,
   MONTHLY_WELLBEING,
   missingPhotos,
-  monthlyDueDate,
   monthlyMissingFields,
   monthlyReportDataSchema,
+  monthOfWeek,
   photoFileName,
+  previousCalendarMonth,
 } from './index'
 
 const filled = () =>
@@ -18,19 +20,26 @@ const filled = () =>
     feedback: { wins: 'a', issues: 'b', changes: 'c', questions: 'd' },
   })
 
-describe('monthlyDueDate', () => {
-  it('is the same day of the next month', () => {
-    expect(monthlyDueDate('2026-11-09')).toBe('2026-12-09')
+describe('calendarMonth', () => {
+  it('covers the 1st through the last day of the month', () => {
+    expect(calendarMonth('2026-11-14')).toEqual({ start: '2026-11-01', end: '2026-11-30' })
+    expect(calendarMonth('2028-02-03')).toEqual({ start: '2028-02-01', end: '2028-02-29' })
   })
+})
 
-  it('rolls over the year', () => {
-    expect(monthlyDueDate('2026-12-15')).toBe('2027-01-15')
+describe('previousCalendarMonth', () => {
+  it('is the whole month before the given date', () => {
+    expect(previousCalendarMonth('2026-12-01')).toEqual({ start: '2026-11-01', end: '2026-11-30' })
+    expect(previousCalendarMonth('2027-01-31')).toEqual({ start: '2026-12-01', end: '2026-12-31' })
   })
+})
 
-  it('clamps to the last day of a shorter month', () => {
-    expect(monthlyDueDate('2026-01-31')).toBe('2026-02-28')
-    expect(monthlyDueDate('2026-03-31')).toBe('2026-04-30')
-    expect(monthlyDueDate('2028-01-30')).toBe('2028-02-29')
+describe('monthOfWeek', () => {
+  it('assigns a week to the month that holds most of its days', () => {
+    expect(monthOfWeek('2026-10-26')).toBe('2026-10')
+    expect(monthOfWeek('2026-11-30')).toBe('2026-12')
+    expect(monthOfWeek('2026-12-28')).toBe('2026-12')
+    expect(monthOfWeek('2027-03-29')).toBe('2027-04')
   })
 })
 
@@ -68,22 +77,26 @@ describe('monthlyMissingFields', () => {
     expect(monthlyMissingFields(filled())).toEqual([])
   })
 
-  it('does not require cardio', () => {
-    const data = filled()
-    expect(monthlyMissingFields({ ...data, fact: { ...data.fact, cardio: '' } })).toEqual([])
-  })
-
-  it('lists missing fact, measure, wellbeing and feedback fields', () => {
+  it('does not ask the client for nutrition, activity or measurements, which come from weekly reports', () => {
     const data = filled()
     expect(
       monthlyMissingFields({
         ...data,
-        fact: { ...data.fact, steps: '' },
-        now: { ...data.now, thigh: '' },
+        fact: monthlyReportDataSchema.parse({}).fact,
+        now: monthlyReportDataSchema.parse({}).now,
+      }),
+    ).toEqual([])
+  })
+
+  it('lists missing wellbeing and feedback fields', () => {
+    const data = filled()
+    expect(
+      monthlyMissingFields({
+        ...data,
         wellbeing: { ...data.wellbeing, planEase: '' },
         feedback: { ...data.feedback, questions: ' ' },
       }),
-    ).toEqual(['fact.steps', 'now.thigh', 'wellbeing.planEase', 'feedback.questions'])
+    ).toEqual(['wellbeing.planEase', 'feedback.questions'])
   })
 })
 

@@ -3,10 +3,10 @@ import {
   FEEDBACK,
   formatDelta,
   MEASURES,
-  METRICS,
   type Plan,
   parseNumber,
   type ReportData,
+  WEEKLY_METRICS,
   WELLBEING,
 } from '@lekafit/shared'
 import { useState } from 'react'
@@ -60,16 +60,16 @@ export const ReportForm = ({ data, plan, readOnly, invalid = new Set(), onChange
         activity: (
           <Section
             title="Питание и активность"
-            hint="Среднее за 7 дней из FatSecret и приложения шагов. Тренировки — количество за неделю."
+            hint="Среднее за 7 дней из FatSecret и приложения шагов. Тренировки — количество за неделю, кардио — минуты за неделю, по желанию."
           >
             <div className="flex flex-col gap-3">
               {plan === null && <NoPlanNotice />}
               <PlanFactRows
-                metrics={METRICS}
+                metrics={WEEKLY_METRICS}
                 completion={COMPLETION}
                 plan={data.plan}
                 fact={data.fact}
-                coachPlan={(key) => plan?.[key] ?? null}
+                coachPlan={(key) => (key === 'cardio' ? null : (plan?.[key] ?? null))}
                 readOnly={readOnly}
                 isInvalid={isInvalid}
                 onPlan={(key, v) => set('plan', { [key]: v })}

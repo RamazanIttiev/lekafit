@@ -16,7 +16,15 @@ export const MEASURES = [
   { key: 'hips', label: 'Бёдра', unit: 'см' },
   { key: 'glutes', label: 'Ягодицы', unit: 'см' },
   { key: 'arm', label: 'Бицепс руки', unit: 'см' },
+  { key: 'thigh', label: 'Обхват бедра', unit: 'см' },
 ] as const
+
+export const WEEKLY_METRICS = [
+  ...METRICS,
+  { key: 'cardio', label: 'Кардио', unit: 'мин', scope: 'неделя' },
+] as const
+
+const OPTIONAL_METRICS: readonly string[] = ['cardio']
 
 export const WELLBEING = [
   {
@@ -92,6 +100,7 @@ const metricValues = z
     carb: numericText,
     steps: numericText,
     training: numericText,
+    cardio: numericText,
   })
   .prefault({})
 
@@ -103,6 +112,7 @@ const measureValues = z
     hips: numericText,
     glutes: numericText,
     arm: numericText,
+    thigh: numericText,
   })
   .prefault({})
 
@@ -193,7 +203,9 @@ const hasNumber = (value: string) => parseNumber(value) !== null
 const hasText = (value: string) => value.trim() !== ''
 
 export const missingFields = (data: ReportData): string[] => [
-  ...METRICS.filter((m) => !hasNumber(data.fact[m.key])).map((m) => `fact.${m.key}`),
+  ...WEEKLY_METRICS.filter(
+    (m) => !OPTIONAL_METRICS.includes(m.key) && !hasNumber(data.fact[m.key]),
+  ).map((m) => `fact.${m.key}`),
   ...MEASURES.filter((m) => !hasNumber(data.now[m.key])).map((m) => `now.${m.key}`),
   ...WELLBEING.filter((w) => !hasText(data.wellbeing[w.key])).map((w) => `wellbeing.${w.key}`),
   ...FEEDBACK.filter((f) => !hasText(data.feedback[f.key])).map((f) => `feedback.${f.key}`),
@@ -205,10 +217,7 @@ export const MONTHLY_METRICS = [
   { key: 'cardio', label: 'Кардио', unit: 'мин', scope: 'месяц' },
 ] as const
 
-export const MONTHLY_MEASURES = [
-  ...MEASURES,
-  { key: 'thigh', label: 'Обхват бедра', unit: 'см' },
-] as const
+export const MONTHLY_MEASURES = MEASURES
 
 export const MONTHLY_WELLBEING = [
   ...WELLBEING,
@@ -262,41 +271,15 @@ export const GOALS = [
   'Другое',
 ] as const
 
-const OPTIONAL_MONTHLY_METRICS: readonly string[] = ['cardio']
-
-const monthlyMetricValues = z
-  .object({
-    cal: numericText,
-    protein: numericText,
-    fat: numericText,
-    carb: numericText,
-    steps: numericText,
-    training: numericText,
-    cardio: numericText,
-  })
-  .prefault({})
-
-const monthlyMeasureValues = z
-  .object({
-    weight: numericText,
-    chest: numericText,
-    waist: numericText,
-    hips: numericText,
-    glutes: numericText,
-    arm: numericText,
-    thigh: numericText,
-  })
-  .prefault({})
-
 export const monthlyReportDataSchema = z.object({
   about: z
     .object({ startDate: z.string().max(10).default(''), goal: optionOrEmpty(GOALS) })
     .prefault({}),
-  plan: monthlyMetricValues,
-  fact: monthlyMetricValues,
-  baseline: monthlyMeasureValues,
-  prev: monthlyMeasureValues,
-  now: monthlyMeasureValues,
+  plan: metricValues,
+  fact: metricValues,
+  baseline: measureValues,
+  prev: measureValues,
+  now: measureValues,
   wellbeing: z
     .object({
       sleep: optionOrEmpty(MONTHLY_WELLBEING[0].options),
@@ -316,19 +299,31 @@ export const monthlyReportDataSchema = z.object({
 
 export type MonthlyReportData = z.infer<typeof monthlyReportDataSchema>
 
-export const monthlyDueDate = (from: string): string => {
-  const year = Number(from.slice(0, 4))
-  const month = Number(from.slice(5, 7))
-  const day = Number(from.slice(8, 10))
-  const lastDayOfNextMonth = new Date(year, month + 1, 0).getDate()
-  return isoDate(new Date(year, month, Math.min(day, lastDayOfNextMonth)))
+const parseIsoDate = (iso: string) =>
+  new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+
+const monthRange = (year: number, monthIndex: number) => ({
+  start: isoDate(new Date(year, monthIndex, 1)),
+  end: isoDate(new Date(year, monthIndex + 1, 0)),
+})
+
+export const calendarMonth = (iso: string): { start: string; end: string } => {
+  const day = parseIsoDate(iso)
+  return monthRange(day.getFullYear(), day.getMonth())
+}
+
+export const previousCalendarMonth = (iso: string): { start: string; end: string } => {
+  const day = parseIsoDate(iso)
+  return monthRange(day.getFullYear(), day.getMonth() - 1)
+}
+
+export const monthOfWeek = (weekStart: string): string => {
+  const monday = parseIsoDate(weekStart)
+  const thursday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3)
+  return isoDate(thursday).slice(0, 7)
 }
 
 export const monthlyMissingFields = (data: MonthlyReportData): string[] => [
-  ...MONTHLY_METRICS.filter(
-    (m) => !OPTIONAL_MONTHLY_METRICS.includes(m.key) && !hasNumber(data.fact[m.key]),
-  ).map((m) => `fact.${m.key}`),
-  ...MONTHLY_MEASURES.filter((m) => !hasNumber(data.now[m.key])).map((m) => `now.${m.key}`),
   ...MONTHLY_WELLBEING.filter((w) => !hasText(data.wellbeing[w.key])).map(
     (w) => `wellbeing.${w.key}`,
   ),

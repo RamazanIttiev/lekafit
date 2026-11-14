@@ -300,10 +300,13 @@ export const ReportTabs = ({
   panels,
   extra = [],
 }: {
-  panels: Record<(typeof TABS)[number]['id'], ReactNode>
+  panels: Partial<Record<(typeof TABS)[number]['id'], ReactNode>>
   extra?: readonly ExtraTab[]
 }) => {
-  const tabs = [...TABS.map((t) => ({ ...t, panel: panels[t.id] })), ...extra]
+  const tabs = [
+    ...TABS.flatMap((t) => (panels[t.id] === undefined ? [] : [{ ...t, panel: panels[t.id] }])),
+    ...extra,
+  ]
   return (
     <Tabs className="w-full">
       <Tabs.ListContainer>

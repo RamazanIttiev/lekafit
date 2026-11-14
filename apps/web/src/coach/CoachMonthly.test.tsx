@@ -59,16 +59,19 @@ describe('coach: monthly reports', () => {
     await screen.getByRole('tab', { name: 'Динамика' }).click()
     await expect.element(screen.getByRole('grid', { name: 'Динамика по месяцам' })).toBeVisible()
     await expect.element(screen.getByRole('grid', { name: 'Динамика' })).toBeVisible()
-    await screen.getByRole('button', { name: 'Отчёт за 09.11 — 09.12' }).click()
+    await screen.getByRole('button', { name: 'Отчёт за 01.10 — 31.10' }).click()
     await expect.element(screen.getByLabelText('Факт Кардио')).toHaveValue('240')
   })
 
   it('opens a monthly report straight from the bot link, read-only', async () => {
     const { screen } = await renderCoach({ profile, reports: [monthly] }, '#/coach/reports/20')
-    await expect.element(screen.getByText('Отчёт за 09.11 — 09.12')).toBeVisible()
+    await expect.element(screen.getByText('Отчёт за 01.10 — 31.10')).toBeVisible()
     await expect.element(screen.getByLabelText('Факт Кардио')).toBeDisabled()
     await screen.getByRole('tab', { name: 'Замеры' }).click()
+    await expect.element(screen.getByLabelText('Стало Вес')).toHaveTextContent('71')
     await expect.element(screen.getByLabelText('От старта Вес')).toHaveTextContent('-4')
+    await screen.getByRole('tab', { name: 'Самочувствие' }).click()
+    await expect.element(screen.getByRole('button', { name: /Основная цель/ })).toBeVisible()
     await screen.getByRole('tab', { name: 'Обратная связь' }).click()
     await expect
       .element(screen.getByLabelText('Вопросы к тренеру и пожелания на следующий месяц'))

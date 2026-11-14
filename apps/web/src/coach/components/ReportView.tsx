@@ -49,6 +49,7 @@ export const ReportView = ({
           data={report.data}
           plan={report.plan}
           readOnly
+          showComputed
           onChange={() => undefined}
           photos={
             <PhotoSlots

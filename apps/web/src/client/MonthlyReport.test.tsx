@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import { aMonthlyReport, aPlan, fakeApi, filledMonthlyData, monthlyDataWith } from '../test/fakeApi'
+import { aMonthlyReport, fakeApi, filledMonthlyData, monthlyDataWith } from '../test/fakeApi'
 import { ClientApp } from './ClientApp'
 
 const renderMonthly = async (setup: Parameters<typeof fakeApi>[0] = {}) => {
@@ -14,55 +14,28 @@ const renderMonthly = async (setup: Parameters<typeof fakeApi>[0] = {}) => {
 describe('monthly report', () => {
   it('shows the reporting month', async () => {
     const { screen } = await renderMonthly()
-    await expect.element(screen.getByRole('heading', { name: '09.11 — 09.12' })).toBeVisible()
+    await expect.element(screen.getByRole('heading', { name: '01.10 — 31.10' })).toBeVisible()
   })
 
-  it('asks for monthly averages, total workouts and optional cardio', async () => {
+  it('does not ask the client for nutrition, activity or measurements', async () => {
     const { screen } = await renderMonthly()
-    await expect.element(screen.getByText(/Среднее за месяц/)).toBeVisible()
-    await expect.element(screen.getByLabelText('Факт Кардио')).toBeVisible()
-    await expect.element(screen.getByLabelText('Факт Силовые тренировки')).toBeVisible()
-  })
-
-  it('lets the client set monthly workout and cardio targets, but shows the coach plan for nutrition', async () => {
-    const { screen } = await renderMonthly({ monthly: aMonthlyReport({ plan: aPlan() }) })
+    await expect.element(screen.getByRole('tab', { name: 'Самочувствие' })).toBeVisible()
     await expect
-      .element(screen.getByLabelText('План Калории'))
-      .toHaveAttribute('placeholder', (1800).toLocaleString('ru-RU'))
-    await screen.getByLabelText('План Силовые тренировки').fill('12')
-    await screen.getByLabelText('Факт Силовые тренировки').fill('9')
-    await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
+      .element(screen.getByRole('tab', { name: 'Питание и активность' }))
+      .not.toBeInTheDocument()
+    await expect.element(screen.getByRole('tab', { name: 'Замеры' })).not.toBeInTheDocument()
+    await expect.element(screen.getByLabelText('Факт Кардио')).not.toBeInTheDocument()
   })
 
-  it('records the goal and the start date of coaching', async () => {
+  it('records the goal and the start date of coaching under wellbeing', async () => {
     const { screen, monthlySaves } = await renderMonthly()
+    await screen.getByRole('tab', { name: 'Самочувствие' }).click()
     await screen.getByRole('button', { name: /Основная цель/ }).click()
     await screen.getByRole('option', { name: 'Рекомпозиция тела' }).click()
     await screen.getByLabelText('Начало сопровождения').fill('2026-10-01')
     await expect
       .poll(() => monthlySaves.at(-1))
       .toMatchObject({ about: { goal: 'Рекомпозиция тела', startDate: '2026-10-01' } })
-  })
-
-  it('shows change over the month and since the start', async () => {
-    const { screen } = await renderMonthly({
-      monthly: aMonthlyReport({
-        data: monthlyDataWith({ baseline: { weight: '75' }, prev: { weight: '72' } }),
-      }),
-    })
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
-    await expect.element(screen.getByLabelText('Старт Вес')).toHaveTextContent('75')
-    await expect.element(screen.getByLabelText('Было Вес')).toHaveTextContent('72')
-    await screen.getByLabelText('Стало Вес').fill('71')
-    await expect.element(screen.getByLabelText('За месяц Вес')).toHaveTextContent('-1')
-    await expect.element(screen.getByLabelText('От старта Вес')).toHaveTextContent('-4')
-  })
-
-  it('lets the client enter start values in the first month', async () => {
-    const { screen, monthlySaves } = await renderMonthly()
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
-    await screen.getByLabelText('Старт Обхват бедра').fill('58')
-    await expect.poll(() => monthlySaves.at(-1)?.baseline).toMatchObject({ thigh: '58' })
   })
 
   it('asks the monthly wellbeing and feedback questions', async () => {
@@ -75,11 +48,10 @@ describe('monthly report', () => {
       .toBeVisible()
   })
 
-  it('sends a complete monthly report without cardio', async () => {
-    const data = filledMonthlyData()
+  it('sends the report with only wellbeing, summary and photos filled', async () => {
     const { screen, state } = await renderMonthly({
       monthly: aMonthlyReport({
-        data: { ...data, fact: { ...data.fact, cardio: '' } },
+        data: filledMonthlyData(),
         photos: { front: true, side: true, back: true },
       }),
     })
@@ -103,13 +75,18 @@ describe('monthly report', () => {
     expect(state.monthly.submittedAt).toBeNull()
   })
 
-  it('refuses to send while a monthly field is empty', async () => {
+  it('refuses to send while a wellbeing answer is empty', async () => {
     const data = filledMonthlyData()
     const { screen, confirm } = await renderMonthly({
-      monthly: aMonthlyReport({ data: { ...data, fact: { ...data.fact, steps: '' } } }),
+      monthly: aMonthlyReport({
+        data: { ...data, wellbeing: { ...data.wellbeing, planEase: '' } },
+        photos: { front: true, side: true, back: true },
+      }),
     })
     await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
-    await expect.element(screen.getByLabelText('Факт Шаги')).toBeInvalid()
+    await expect
+      .element(screen.getByText('Заполните все поля, чтобы отправить отчёт'))
+      .toBeVisible()
     expect(confirm).not.toHaveBeenCalled()
   })
 })
@@ -133,20 +110,6 @@ describe('monthly progress', () => {
   })
 })
 
-describe('monthly targets from the coach', () => {
-  it('shows the coach monthly workout and cardio targets instead of asking for them', async () => {
-    const { screen } = await renderMonthly({
-      monthly: aMonthlyReport({ plan: aPlan({ trainingMonth: 12, cardioMonth: 300 }) }),
-    })
-    await expect
-      .element(screen.getByLabelText('План Силовые тренировки'))
-      .toHaveAttribute('placeholder', '12')
-    await expect.element(screen.getByLabelText('План Кардио')).toHaveAttribute('placeholder', '300')
-    await screen.getByLabelText('Факт Силовые тренировки').fill('9')
-    await expect.element(screen.getByLabelText('Тренировки')).toHaveTextContent('75%')
-  })
-})
-
 const aPhoto = (name = 'photo.png'): Promise<File> => {
   const canvas = document.createElement('canvas')
   canvas.width = 40
@@ -164,21 +127,15 @@ describe('monthly photos', () => {
     await screen.getByRole('tab', { name: 'Фото' }).click()
   }
 
-  it('keeps photos in their own tab, the last of five', async () => {
+  it('keeps photos in their own tab, after wellbeing and feedback', async () => {
     const { screen } = await renderMonthly()
     const sections = screen.getByRole('tablist', { name: 'Разделы отчёта' })
     const names = sections
       .getByRole('tab')
       .elements()
       .map((tab) => tab.getAttribute('aria-label'))
-    expect(names).toEqual([
-      'Питание и активность',
-      'Замеры',
-      'Самочувствие',
-      'Обратная связь',
-      'Фото',
-    ])
-    await screen.getByRole('tab', { name: 'Замеры' }).click()
+    expect(names).toEqual(['Самочувствие', 'Обратная связь', 'Фото'])
+    await screen.getByRole('tab', { name: 'Обратная связь' }).click()
     await expect.element(screen.getByLabelText('Выбрать фото: Фас')).not.toBeInTheDocument()
   })
 

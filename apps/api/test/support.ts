@@ -97,7 +97,13 @@ export const seedPlan = (telegramId: number, plan: Record<string, number | null>
 
 export const seedSubmittedReport = (
   telegramId: number,
-  report: { kind: 'WEEKLY' | 'MONTHLY'; periodStart: string; periodEnd: string; submittedAt: Date },
+  report: {
+    kind: 'WEEKLY' | 'MONTHLY'
+    periodStart: string
+    periodEnd: string
+    submittedAt: Date | null
+    data?: object
+  },
 ) =>
   withDataSource(async (ds) => {
     const user = await ds.getRepository(UserEntity).findOneByOrFail({ telegramId })
