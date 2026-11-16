@@ -260,7 +260,7 @@ export const WellbeingFields = <K extends string>({
     ))}
     <TextField value={note} isDisabled={readOnly} onChange={onNote}>
       <Label>Комментарии по самочувствию</Label>
-      <TextArea />
+      <TextArea className="field-sizing-content min-h-20 resize-none" />
     </TextField>
   </div>
 )
@@ -288,7 +288,7 @@ export const FeedbackFields = <K extends string>({
         onChange={(v) => onChange(f.key, v)}
       >
         <Label>{f.label}</Label>
-        <TextArea />
+        <TextArea className="field-sizing-content min-h-20 resize-none" />
       </TextField>
     ))}
   </div>
