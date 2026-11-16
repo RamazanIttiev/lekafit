@@ -162,6 +162,13 @@ export class ReportsService {
     return this.own(userId, id)
   }
 
+  async reopen(userId: number, id: number): Promise<Report> {
+    const report = await this.own(userId, id)
+    if (!report.submittedAt) throw new ConflictException('Отчёт ещё не отправлен')
+    await this.reports.reopen(id)
+    return this.own(userId, id)
+  }
+
   async submit(userId: number, id: number): Promise<Report> {
     const report = await this.own(userId, id)
     if (report.submittedAt) throw new ConflictException('Отчёт уже отправлен')

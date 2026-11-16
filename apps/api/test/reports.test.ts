@@ -235,6 +235,43 @@ describe('POST /reports/:id/submit', () => {
   })
 })
 
+describe('POST /reports/:id/reopen', () => {
+  it('reopens the same record for editing and keeps the data', async () => {
+    const client = aClient()
+    const { body } = await as(app, client).get('/reports/current')
+    await as(app, client).patch(`/reports/${body.id}`, { data: filledFacts }).expect(200)
+    await as(app, client).post(`/reports/${body.id}/submit`).expect(200)
+    const res = await as(app, client).post(`/reports/${body.id}/reopen`).expect(200)
+    expect(res.body).toMatchObject({ id: body.id, submittedAt: null })
+    expect(res.body.data.fact.cal).toBe('1850')
+  })
+
+  it('lets the client correct and send the same report again', async () => {
+    const client = aClient()
+    const { body } = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${body.id}/submit`).expect(200)
+    await as(app, client).post(`/reports/${body.id}/reopen`).expect(200)
+    await as(app, client).patch(`/reports/${body.id}`, { data: filledFacts }).expect(200)
+    const res = await as(app, client).post(`/reports/${body.id}/submit`).expect(200)
+    expect(res.body.submittedAt).toBeTruthy()
+    const list = await as(app, client).get('/reports')
+    expect(list.body).toHaveLength(1)
+  })
+
+  it('refuses a report that was not sent yet', async () => {
+    const client = aClient()
+    const { body } = await as(app, client).get('/reports/current')
+    await as(app, client).post(`/reports/${body.id}/reopen`).expect(409)
+  })
+
+  it("does not let a client reopen someone else's report", async () => {
+    const owner = aClient()
+    const { body } = await as(app, owner).get('/reports/current')
+    await as(app, owner).post(`/reports/${body.id}/submit`)
+    await as(app, aClient()).post(`/reports/${body.id}/reopen`).expect(404)
+  })
+})
+
 describe('GET /reports', () => {
   it("lists only the client's own reports, newest week first", async () => {
     const client = aClient()

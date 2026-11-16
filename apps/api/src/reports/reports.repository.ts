@@ -204,6 +204,10 @@ export class ReportsRepository {
     )
   }
 
+  async reopen(id: number): Promise<void> {
+    await this.reports.update({ id }, { submittedAt: null, seenByCoachAt: null })
+  }
+
   async listFor(userId: number, kind: ReportKind): Promise<Report[]> {
     const entities = await this.reports.find({
       where: { userId, kind },

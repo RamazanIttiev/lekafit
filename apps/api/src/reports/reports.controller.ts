@@ -88,6 +88,12 @@ export class ReportsController {
     return new StreamableFile(data, { type: mime })
   }
 
+  @Post(':id/reopen')
+  @HttpCode(200)
+  reopen(@CurrentUser() user: User, @Param('id', ParseIntPipe) id: number) {
+    return this.reports.reopen(user.id, id)
+  }
+
   @Post(':id/submit')
   @HttpCode(200)
   submit(@CurrentUser() user: User, @Param('id', ParseIntPipe) id: number) {

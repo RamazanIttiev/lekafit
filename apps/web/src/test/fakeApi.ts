@@ -134,6 +134,18 @@ export const fakeApi = (
       state.current = { ...state.current, submittedAt: now() }
       return state.current
     },
+    reopenReport: async (id) => {
+      if (id === state.monthly.id) {
+        state.monthly = { ...state.monthly, submittedAt: null }
+        return state.monthly
+      }
+      if (id === state.previous.id) {
+        state.previous = { ...state.previous, submittedAt: null }
+        return state.previous
+      }
+      state.current = { ...state.current, submittedAt: null }
+      return state.current
+    },
     listReports: async () => history,
     listMonthlyReports: async () => monthlyHistory,
     uploadPhoto: async (id, angle, photo) => {

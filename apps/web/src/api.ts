@@ -89,6 +89,7 @@ export type Api = {
   currentMonthlyReport: () => Promise<MonthlyReport>
   saveReport: (id: number, data: ReportData | MonthlyReportData) => Promise<Report>
   submitReport: (id: number) => Promise<Report>
+  reopenReport: (id: number) => Promise<Report>
   listReports: () => Promise<WeeklyReport[]>
   listMonthlyReports: () => Promise<MonthlyReport[]>
   getReport: (id: number) => Promise<Report>
@@ -158,6 +159,7 @@ export const createApi = (request: Request, fetchBlob: FetchBlob): Api => ({
   currentMonthlyReport: () => request('/reports/current?kind=monthly', monthlyReportSchema),
   saveReport: (id, data) =>
     request(`/reports/${id}`, reportSchema, { method: 'PATCH', body: { data } }),
+  reopenReport: (id) => request(`/reports/${id}/reopen`, reportSchema, { method: 'POST' }),
   submitReport: (id) => request(`/reports/${id}/submit`, reportSchema, { method: 'POST' }),
   listReports: () => request('/reports', z.array(weeklyReportSchema)),
   listMonthlyReports: () => request('/reports?kind=monthly', z.array(monthlyReportSchema)),

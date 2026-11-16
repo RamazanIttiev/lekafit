@@ -24,7 +24,7 @@ const SAVE_LABEL: Record<SaveStatus, string> = {
   error: 'Не сохранилось — проверьте интернет',
 }
 
-const CONFIRM_MESSAGE = 'Отправить отчёт тренеру? После отправки изменить его будет нельзя.'
+const CONFIRM_MESSAGE = 'Отправить отчёт тренеру?'
 const ERROR_VISIBLE_MS = 3000
 
 const missingIn = (report: Report) =>
@@ -111,6 +111,17 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
     }
   }
 
+  const reopen = async () => {
+    setSending(true)
+    try {
+      setReport(await api.reopenReport(report.id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось открыть отчёт')
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -122,9 +133,14 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
         )}
       </div>
       {report.submittedAt !== null && (
-        <Notice status="success" indicator>
-          Отчёт отправлен тренеру
-        </Notice>
+        <>
+          <Notice status="success" indicator>
+            Отчёт отправлен тренеру
+          </Notice>
+          <Button fullWidth variant="secondary" isDisabled={sending} onPress={reopen}>
+            Поправить отчет
+          </Button>
+        </>
       )}
       {invalid.size > 0 && (
         <div className="fixed inset-x-3 top-3 z-50 mx-auto max-w-2xl">
