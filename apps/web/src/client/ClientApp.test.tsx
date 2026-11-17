@@ -66,15 +66,16 @@ describe('weekly report form', () => {
     await expect.element(screen.getByRole('tab', { name: 'Замеры' })).toHaveTextContent('')
   })
 
-  it('shows measurement changes against last week', async () => {
+  it('shows measurement changes against an editable last-week value', async () => {
     const { screen } = await renderClient({
       current: aReport({ data: dataWith({ prev: { weight: '72,4' } }) }),
     })
     await screen.getByRole('tab', { name: 'Замеры' }).click()
-    await expect.element(screen.getByLabelText('Было Вес')).toHaveTextContent('72,4')
-    await expect.element(screen.getByRole('textbox', { name: 'Было Вес' })).not.toBeInTheDocument()
+    await expect.element(screen.getByRole('textbox', { name: 'Было Вес' })).toHaveValue('72,4')
     await screen.getByLabelText('Стало Вес').fill('71,9')
     await expect.element(screen.getByLabelText('Разница Вес')).toHaveTextContent('-0,5')
+    await screen.getByRole('textbox', { name: 'Было Вес' }).fill('72,0')
+    await expect.element(screen.getByLabelText('Разница Вес')).toHaveTextContent('-0,1')
   })
 
   it('lets the client type "before" when there is no previous measurement', async () => {
