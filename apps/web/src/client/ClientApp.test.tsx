@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { aPlan, aReport, dataWith, fakeApi, filledData } from '../test/fakeApi'
+import { fakeBackButton } from '../test/fakeBackButton'
 import { ClientApp } from './ClientApp'
 
 const renderClient = async (
@@ -9,10 +10,16 @@ const renderClient = async (
   initialTab?: 'current' | 'month',
 ) => {
   const fake = fakeApi(setup)
+  const back = fakeBackButton()
   const screen = await render(
-    <ClientApp api={fake.api} confirm={confirm} initialTab={initialTab} />,
+    <ClientApp
+      api={fake.api}
+      confirm={confirm}
+      initialTab={initialTab}
+      backButton={back.backButton}
+    />,
   )
-  return { ...fake, confirm, screen }
+  return { ...fake, back, confirm, screen }
 }
 
 describe('weekly report form', () => {
@@ -212,6 +219,36 @@ describe('weekly report form', () => {
       }),
     })
     await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+  })
+
+  it('discards edits to a sent report when the client goes back', async () => {
+    const { screen, state, saves, back } = await renderClient({
+      current: aReport({ submittedAt: '2026-11-10T09:00:00.000Z', data: filledData() }),
+    })
+    expect(back.isVisible()).toBe(false)
+    await screen.getByRole('button', { name: 'Поправить отчет' }).click()
+    await expect.poll(back.isVisible).toBe(true)
+    await screen.getByLabelText('Факт Калории').fill('9 999')
+    back.press()
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+    expect(back.isVisible()).toBe(false)
+    await screen.getByRole('button', { name: 'Поправить отчет' }).click()
+    await expect.element(screen.getByLabelText('Факт Калории')).not.toHaveValue('9 999')
+    expect(state.current.submittedAt).not.toBeNull()
+    expect(saves).toHaveLength(0)
+  })
+
+  it('resends an edited report with the new answers', async () => {
+    const { screen, state, back } = await renderClient({
+      current: aReport({ submittedAt: '2026-11-10T09:00:00.000Z', data: filledData() }),
+    })
+    await screen.getByRole('button', { name: 'Поправить отчет' }).click()
+    await screen.getByLabelText('Факт Калории').fill('1 777')
+    await screen.getByRole('button', { name: 'Отправить тренеру' }).click()
+    await expect.element(screen.getByText('Отчёт отправлен тренеру')).toBeVisible()
+    expect(state.current.submittedAt).not.toBeNull()
+    expect(state.current.data.fact.cal).toBe('1 777')
+    expect(back.isVisible()).toBe(false)
   })
 })
 

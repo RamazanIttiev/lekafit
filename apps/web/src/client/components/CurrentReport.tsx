@@ -9,13 +9,14 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Api, MonthlyReportData, Report, ReportData } from '../../api'
 import { CenteredSpinner } from '../../components/CenteredSpinner'
 import { Notice } from '../../components/Notice'
+import { useBackButton } from '../../hooks/useBackButton'
 import { period } from '../../lib/format'
 import { resizeImage } from '../../lib/resize-image'
 import { MonthlyReportForm } from '../../report/MonthlyReportForm'
 import { PhotoSlots } from '../../report/PhotoSlots'
 import { ReportForm } from '../../report/ReportForm'
 import { type SaveStatus, useAutosave } from '../../report/useAutosave'
-import { hapticSuccess } from '../../telegram'
+import { type BackButton, hapticSuccess } from '../../telegram'
 
 const SAVE_LABEL: Record<SaveStatus, string> = {
   idle: '',
@@ -38,13 +39,16 @@ type Props = {
   api: Api
   confirm: (message: string) => Promise<boolean>
   load: () => Promise<Report>
+  backButton: BackButton
 }
 
-export const CurrentReport = ({ api, confirm, load }: Props) => {
+export const CurrentReport = ({ api, confirm, load, backButton }: Props) => {
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [invalid, setInvalid] = useState<ReadonlySet<string>>(new Set())
+  const [original, setOriginal] = useState<Report | null>(null)
+  const editing = original !== null
 
   useEffect(() => {
     if (invalid.size === 0) return
@@ -64,6 +68,13 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
   )
   const autosave = useAutosave(save)
 
+  const discardEdit = useCallback(() => {
+    setReport((current) => original ?? current)
+    setOriginal(null)
+    setInvalid(new Set())
+  }, [original])
+  useBackButton(backButton, editing && !sending ? discardEdit : null)
+
   if (error)
     return (
       <Notice status="danger" indicator>
@@ -76,12 +87,19 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
 
   const onWeeklyChange = (data: ReportData) => {
     if (report.kind === 'WEEKLY') setReport({ ...report, data })
-    autosave.schedule(data)
+    if (!editing) autosave.schedule(data)
   }
 
   const onMonthlyChange = (data: MonthlyReportData) => {
     if (report.kind === 'MONTHLY') setReport({ ...report, data })
-    autosave.schedule(data)
+    if (!editing) autosave.schedule(data)
+  }
+
+  const commitEdit = async () => {
+    if (!editing) return
+    await api.reopenReport(report.id)
+    await api.saveReport(report.id, report.data)
+    setOriginal(null)
   }
 
   const keepPhotos = (updated: { photos: Record<PhotoAngle, boolean> }) =>
@@ -89,11 +107,15 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
       current?.kind === 'MONTHLY' ? { ...current, photos: updated.photos } : current,
     )
 
-  const pickPhoto = async (angle: PhotoAngle, file: File) =>
+  const pickPhoto = async (angle: PhotoAngle, file: File) => {
+    await commitEdit()
     keepPhotos(await api.uploadPhoto(report.id, angle, await resizeImage(file)))
+  }
 
-  const removePhoto = async (angle: PhotoAngle) =>
+  const removePhoto = async (angle: PhotoAngle) => {
+    await commitEdit()
     keepPhotos(await api.removePhoto(report.id, angle))
+  }
 
   const submit = async () => {
     const missing = missingIn(report)
@@ -101,6 +123,7 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
     if (!(await confirm(CONFIRM_MESSAGE))) return
     setSending(true)
     try {
+      await commitEdit()
       await autosave.flush()
       setReport(await api.submitReport(report.id))
       hapticSuccess()
@@ -111,22 +134,16 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
     }
   }
 
-  const reopen = async () => {
-    setSending(true)
-    try {
-      setReport(await api.reopenReport(report.id))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось открыть отчёт')
-    } finally {
-      setSending(false)
-    }
+  const startEdit = () => {
+    setOriginal(report)
+    setReport({ ...report, submittedAt: null })
   }
 
   return (
     <>
       <div className="flex items-center justify-between">
         <h1>{title(report)}</h1>
-        {report.submittedAt === null && autosave.status !== 'idle' && (
+        {!editing && report.submittedAt === null && autosave.status !== 'idle' && (
           <Chip size="sm" color={autosave.status === 'error' ? 'danger' : 'default'}>
             {SAVE_LABEL[autosave.status]}
           </Chip>
@@ -137,7 +154,7 @@ export const CurrentReport = ({ api, confirm, load }: Props) => {
           <Notice status="success" indicator>
             Отчёт отправлен тренеру
           </Notice>
-          <Button fullWidth variant="secondary" isDisabled={sending} onPress={reopen}>
+          <Button fullWidth variant="secondary" onPress={startEdit}>
             Поправить отчет
           </Button>
         </>

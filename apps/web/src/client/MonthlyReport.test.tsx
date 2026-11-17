@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { aMonthlyReport, fakeApi, filledMonthlyData, monthlyDataWith } from '../test/fakeApi'
+import { fakeBackButton } from '../test/fakeBackButton'
 import { ClientApp } from './ClientApp'
 
 const renderMonthly = async (setup: Parameters<typeof fakeApi>[0] = {}) => {
   const fake = fakeApi(setup)
   const confirm = vi.fn(async (_message: string) => true)
-  const screen = await render(<ClientApp api={fake.api} confirm={confirm} />)
+  const screen = await render(
+    <ClientApp api={fake.api} confirm={confirm} backButton={fakeBackButton().backButton} />,
+  )
   await screen.getByRole('tab', { name: 'Месяц' }).click()
   return { ...fake, confirm, screen }
 }
@@ -101,7 +104,13 @@ describe('monthly progress', () => {
       data: monthlyDataWith({ baseline: { weight: '75' }, now: { weight: '72', waist: '68' } }),
     })
     const fake = fakeApi({ monthlyHistory: [past] })
-    const screen = await render(<ClientApp api={fake.api} confirm={async () => true} />)
+    const screen = await render(
+      <ClientApp
+        api={fake.api}
+        confirm={async () => true}
+        backButton={fakeBackButton().backButton}
+      />,
+    )
     await screen.getByRole('tab', { name: 'Прогресс' }).click()
     const table = screen.getByRole('grid', { name: 'Динамика по месяцам' })
     await expect.element(table.getByRole('rowheader', { name: '09.10 — 09.11' })).toBeVisible()

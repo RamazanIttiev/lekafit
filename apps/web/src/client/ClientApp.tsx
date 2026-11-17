@@ -1,5 +1,6 @@
 import { Tabs } from '@heroui/react'
 import type { Api } from '../api'
+import type { BackButton } from '../telegram'
 import { CurrentReport } from './components/CurrentReport'
 import { Progress } from './components/Progress'
 import { WeeklyReport } from './components/WeeklyReport'
@@ -9,9 +10,10 @@ type Props = {
   api: Api
   confirm: (message: string) => Promise<boolean>
   initialTab?: ClientTab | undefined
+  backButton: BackButton
 }
 
-export const ClientApp = ({ api, confirm, initialTab = 'current' }: Props) => (
+export const ClientApp = ({ api, confirm, initialTab = 'current', backButton }: Props) => (
   <main className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
     <Tabs variant="primary" defaultSelectedKey={initialTab}>
       <Tabs.ListContainer>
@@ -31,10 +33,15 @@ export const ClientApp = ({ api, confirm, initialTab = 'current' }: Props) => (
         </Tabs.List>
       </Tabs.ListContainer>
       <Tabs.Panel id="current" className="flex flex-col gap-3 p-0">
-        <WeeklyReport api={api} confirm={confirm} />
+        <WeeklyReport api={api} confirm={confirm} backButton={backButton} />
       </Tabs.Panel>
       <Tabs.Panel id="month" className="flex flex-col gap-3 p-0">
-        <CurrentReport api={api} confirm={confirm} load={api.currentMonthlyReport} />
+        <CurrentReport
+          api={api}
+          confirm={confirm}
+          load={api.currentMonthlyReport}
+          backButton={backButton}
+        />
       </Tabs.Panel>
       <Tabs.Panel id="progress" className="flex flex-col gap-3 p-0">
         <Progress api={api} />

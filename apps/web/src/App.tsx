@@ -54,5 +54,5 @@ export const App = ({
         download={download}
       />
     )
-  return <ClientApp api={api} confirm={confirm} initialTab={initialTab} />
+  return <ClientApp api={api} confirm={confirm} initialTab={initialTab} backButton={backButton} />
 }

@@ -1,6 +1,7 @@
 import { ListBox, Select } from '@heroui/react'
 import { useCallback, useState } from 'react'
 import type { Api } from '../../api'
+import type { BackButton } from '../../telegram'
 import { CurrentReport } from './CurrentReport'
 
 type Week = 'current' | 'previous'
@@ -10,9 +11,13 @@ const WEEKS: readonly { key: Week; label: string }[] = [
   { key: 'previous', label: 'Прошлая неделя' },
 ]
 
-type Props = { api: Api; confirm: (message: string) => Promise<boolean> }
+type Props = {
+  api: Api
+  confirm: (message: string) => Promise<boolean>
+  backButton: BackButton
+}
 
-export const WeeklyReport = ({ api, confirm }: Props) => {
+export const WeeklyReport = ({ api, confirm, backButton }: Props) => {
   const [week, setWeek] = useState<Week>('current')
   const load = useCallback(
     () => api.currentReport(week === 'previous' ? 'previous' : undefined),
@@ -40,7 +45,7 @@ export const WeeklyReport = ({ api, confirm }: Props) => {
           </ListBox>
         </Select.Popover>
       </Select>
-      <CurrentReport key={week} api={api} confirm={confirm} load={load} />
+      <CurrentReport key={week} api={api} confirm={confirm} load={load} backButton={backButton} />
     </>
   )
 }
